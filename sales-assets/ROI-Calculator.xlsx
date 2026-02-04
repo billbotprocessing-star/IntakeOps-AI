@@ -1,1 +1,7 @@
-
+Content: A markdown table where a user can plug in their numbers.
+Formula: | Metric | Value |
+| :--- | :--- |
+| Avg. Job Value | $500 |
+| Missed Calls/Month | 30 |
+| IntakeOps Capture Rate | 90% |
+| **Recovered Monthly Revenue** | **$13,500** |

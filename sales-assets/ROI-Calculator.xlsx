@@ -1,7 +1,17 @@
-Content: A markdown table where a user can plug in their numbers.
-Formula: | Metric | Value |
+# 📈 IntakeOps ROI Calculator
+
+Use this table to demonstrate lost revenue to prospective clients.
+
+| Metric | Monthly Volume |
 | :--- | :--- |
-| Avg. Job Value | $500 |
-| Missed Calls/Month | 30 |
+| Avg. Missed Calls / Month | 30 |
+| Estimated Avg. Job Value | $500 |
+| **Total Potential Revenue Lost** | **$15,000** |
 | IntakeOps Capture Rate | 90% |
-| **Recovered Monthly Revenue** | **$13,500** |
+| **Recovered Revenue Opportunity** | **$13,500** |
+
+### Outcome-Based Pricing Model
+Instead of charging $2.00/minute, IntakeOps charges **$25 per qualified lead**. 
+* **Client Cost:** $750/mo (for 30 leads)
+* **Client Gain:** $13,500 in pipeline
+* **ROI:** 18x

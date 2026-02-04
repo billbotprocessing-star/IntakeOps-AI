@@ -1,7 +1,11 @@
 {
-  "name": "IntakeOps Base Agent",
-  "voice": "shimmer",
-  "firstMessage": "Thank you for calling. May I start with your name?",
+  "name": "IntakeOps_Base_v1",
+  "voice": "rachel",
   "model": "gpt-4o",
-  "transcriber": "deepgram"
+  "firstMessage": "Thank you for calling. My name is the IntakeOps assistant. Who do I have the pleasure of speaking with?",
+  "recordingEnabled": true,
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2"
+  }
 }

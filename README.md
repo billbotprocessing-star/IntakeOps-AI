@@ -27,27 +27,32 @@ Businesses don't need "minutes answered"; they need **qualified leads** and **bo
 ```text
 /IntakeOps-AI
 │
-├── /assets                 # Branding and UI/UX
-│   ├── landing-page.png    # The Claude-generated landing page screenshot
-│   └── logo-mark.svg
+├── /assets                 # Visual Identity
+│   └── landing-page.png    # Screenshot of your Claude-generated UI
 │
-├── /prompts                # Vertical-specific "Intake Blueprints"
-│   ├── plumbing-intake.txt
-│   ├── legal-intake.txt
-│   ├── property-mgmt.txt
-│   └── med-spa.txt
+├── /blueprints             # Industry Intellectual Property (IP)
+│   ├── plumbing-flow.md    # Triage & Emergency logic
+│   ├── legal-intake.md     # Conflict checks & Statute of Limitations
+│   ├── property-mgmt.md    # Routing for Tenants vs. Owners
+│   └── med-spa.md          # Medical screening & Deposit logic
 │
-├── /vapi-config            # Voice Agent & Tooling Definitions
-│   ├── assistant-base.json # Global settings (voice, model, latency)
-│   └── /tools              # Shared function calling schemas
-│       ├── check-availability.json
-│       └── calendar-booking.json
+├── /frontend               # The Website
+│   ├── index.html          # Your landing page code
+│   └── styles.css          # Tailwind/CSS configurations
 │
-├── /workflows              # n8n Workflow Exports (The "Nerves")
-│   ├── post-call-sync.json # Universal CRM loop
-│   ├── lead-recovery.json  # SMS sequence for dropped calls
-│   └── triage-routing.json # Logic for multi-department routing
+├── /vapi-config            # Voice Agent Infrastructure
+│   ├── assistant-base.json # Global settings (Voice, Model, Latency)
+│   └── tools/              # API schemas for live lookups
+│       └── check-availability.json
 │
-├── .env.example            # API Key templates
-├── docker-compose.yml      # (Optional) For self-hosting n8n
-└── README.md               # The "Master Blueprint" for the project
+├── /sales-assets           # The Revenue Engine
+│   ├── ROI-Calculator.md   # Formula for client profit projections
+│   └── Battle-Cards.md     # Objection handling & Sales talk tracks
+│
+├── /legal-ops              # Compliance & Trust
+│   ├── AI-Guardrails.md    # Safety standards and hallucination prevention
+│   └── Privacy-Policy.md   # Data handling and recording disclosure
+│
+├── .env.example            # Template for API Keys (Vapi, OpenAI)
+├── LICENSE                 # Legal right to use code (e.g., MIT)
+└── README.md               # The Executive Summary & Setup Guide

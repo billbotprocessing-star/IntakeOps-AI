@@ -1,1 +1,7 @@
-
+{
+  "name": "IntakeOps Base Agent",
+  "voice": "shimmer",
+  "firstMessage": "Thank you for calling. May I start with your name?",
+  "model": "gpt-4o",
+  "transcriber": "deepgram"
+}

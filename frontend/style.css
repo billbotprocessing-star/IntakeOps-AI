@@ -1,0 +1,23 @@
+/* Path: /frontend/styles.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom IntakeOps Branding */
+:root {
+  --brand-purple: #4f46e5;
+  --bg-dark: #0f172a;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Custom glow effect for the AI button */
+.ai-glow {
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
+  transition: all 0.3s ease;
+}

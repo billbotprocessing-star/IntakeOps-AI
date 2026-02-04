@@ -1,6 +1,6 @@
 # IntakeOps AI
 
-[![IntakeOps Banner][(https://via.placeholder.com/1000x300/1e1b4b/ffffff?text=IntakeOps+AI+-+From+Calls+to+Closures)](https://claude.ai/public/artifacts/39b920e4-99fd-4cb2-b20e-550dd31b0e17)](https://claude.ai/public/artifacts/cad6ac07-34cd-43ce-8a87-983350061777)
+[![IntakeOps Banner][https://via.placeholder.com/1000x300/1e1b4b/ffffff?text=IntakeOps+AI+-+From+Calls+to+Closures)](https://claude.ai/public/artifacts/39b920e4-99fd-4cb2-b20e-550dd31b0e17)](https://claude.ai/public/artifacts/cad6ac07-34cd-43ce-8a87-983350061777)
 
 **IntakeOps AI** is a sophisticated voice-first automation platform that replaces traditional answering services with high-conversion intake workflows. Unlike standard bots, IntakeOps is built to qualify leads, sync to CRMs, and recover lost revenue—all in real-time.
 

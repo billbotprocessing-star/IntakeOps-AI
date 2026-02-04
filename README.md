@@ -1,4 +1,4 @@
-# IntakeOps AI: The Outcome-Driven Intake Engine
+# 📞 IntakeOps AI: The Outcome-Driven Intake Engine
 
 ![IntakeOps Banner](https://via.placeholder.com/1000x300/1e1b4b/ffffff?text=IntakeOps+AI+-+From+Calls+to+Closures)
 

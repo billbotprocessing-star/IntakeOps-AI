@@ -1,4 +1,4 @@
-# 📞 IntakeOps AI: The Outcome-Driven Intake Engine
+# IntakeOps AI
 
 ![IntakeOps Banner](https://via.placeholder.com/1000x300/1e1b4b/ffffff?text=IntakeOps+AI+-+From+Calls+to+Closures)
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 💎 The Vision
+## The Vision
 Businesses don't need "minutes answered"; they need **qualified leads** and **booked jobs**. IntakeOps AI targets high-intent industries where speed-to-lead is the primary revenue driver.
 
 * **Primary Verticals:** Home Services, Legal Intake, Med Spas, and Multi-location SMBs.
@@ -14,7 +14,7 @@ Businesses don't need "minutes answered"; they need **qualified leads** and **bo
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 - **Voice Interface:** [Vapi.ai](https://vapi.ai)
 - **Intelligence:** [OpenAI GPT-4o](https://openai.com)
 - **Connectivity Layer:** [n8n](https://n8n.io) (Self-hosted/Cloud)
@@ -22,7 +22,7 @@ Businesses don't need "minutes answered"; they need **qualified leads** and **bo
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
 /IntakeOps-AI

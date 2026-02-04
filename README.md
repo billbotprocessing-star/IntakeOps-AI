@@ -27,16 +27,27 @@ Businesses don't need "minutes answered"; they need **qualified leads** and **bo
 ```text
 /IntakeOps-AI
 │
-├── /prompts                # Industry-specific system prompts (The "Brain")
-│   └── plumbing-intake.txt
+├── /assets                 # Branding and UI/UX
+│   ├── landing-page.png    # The Claude-generated landing page screenshot
+│   └── logo-mark.svg
 │
-├── /workflows              # n8n JSON exports for CRM & Calendar sync
-│   └── post-call-intake.json
+├── /prompts                # Vertical-specific "Intake Blueprints"
+│   ├── plumbing-intake.txt
+│   ├── legal-intake.txt
+│   ├── property-mgmt.txt
+│   └── med-spa.txt
 │
-├── /vapi-config            # Vapi Tool definitions & Function schemas
-│   └── check_availability.json
+├── /vapi-config            # Voice Agent & Tooling Definitions
+│   ├── assistant-base.json # Global settings (voice, model, latency)
+│   └── /tools              # Shared function calling schemas
+│       ├── check-availability.json
+│       └── calendar-booking.json
 │
-├── /assets                 # Brand assets and landing page mockups
-│   └── landing-page.html
+├── /workflows              # n8n Workflow Exports (The "Nerves")
+│   ├── post-call-sync.json # Universal CRM loop
+│   ├── lead-recovery.json  # SMS sequence for dropped calls
+│   └── triage-routing.json # Logic for multi-department routing
 │
-└── .env.example            # Template for API keys
+├── .env.example            # API Key templates
+├── docker-compose.yml      # (Optional) For self-hosting n8n
+└── README.md               # The "Master Blueprint" for the project

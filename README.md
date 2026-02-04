@@ -37,6 +37,6 @@ Businesses don't need "minutes answered"; they need **qualified leads** and **bo
 │   └── check_availability.json
 │
 ├── /assets                 # Brand assets and landing page mockups
-│   └── landing-page.png
+│   └── landing-page.html
 │
 └── .env.example            # Template for API keys

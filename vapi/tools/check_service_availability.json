@@ -1,0 +1,25 @@
+{
+  "type": "function",
+  "function": {
+    "name": "check_service_availability",
+    "description": "Checks if the caller's address or ZIP code is within the business's service area.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "zip_code": {
+          "type": "string",
+          "description": "The 5-digit ZIP code provided by the caller."
+        },
+        "city": {
+          "type": "string",
+          "description": "The city name if provided."
+        }
+      },
+      "required": ["zip_code"]
+    }
+  },
+  "async": false,
+  "server": {
+    "url": "https://your-n8n-instance.com/webhook/check-area"
+  }
+}

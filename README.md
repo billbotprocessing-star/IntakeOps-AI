@@ -6,9 +6,6 @@
 
 IntakeOps AI is a full intake automation engine designed to handle inbound calls, qualify leads, sync with your systems, and drive bookings automatically.
 
-This is not an answering service.  
-This is **AI-driven operational infrastructure** for lead conversion.
-
 Core outcomes:
 - Capture more leads  
 - Qualify faster  

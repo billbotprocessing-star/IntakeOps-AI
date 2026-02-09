@@ -14,9 +14,9 @@ Core outcomes:
 
 ---
 
-## 🚀 What the Web View Showcases
+## 🚀 What to expect
 
-The live web experience demonstrates how IntakeOps-AI operates as a **closed-loop intake system**:
+The live web experience: https://billbotprocessing-star.github.io/IntakeOps-AI/ demonstrates how IntakeOps-AI operates as a **closed-loop intake system**:
 
 ### 🗣 AI Voice Receptionist
 An AI receptionist trained on your business intake logic:
@@ -118,6 +118,7 @@ IntakeOps-AI ensures every inbound opportunity is handled the same way — corre
 ## 🔗 Live Web Experience
 
 The GitHub Pages site presents the marketing view and operational concept of the system in action.
+Link: https://billbotprocessing-star.github.io/IntakeOps-AI/
 
 ---
 

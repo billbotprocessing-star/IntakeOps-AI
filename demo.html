@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntakeOps AI - See the Workflow in Action</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0f;
+            color: #e4e4e7;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navigation */
+        nav {
+            padding: 20px 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .nav-back {
+            color: #a1a1aa;
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-back:hover {
+            color: #e4e4e7;
+        }
+
+        .nav-cta {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Hero */
+        .demo-hero {
+            padding: 140px 0 60px;
+            text-align: center;
+        }
+
+        .demo-hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .demo-hero p {
+            font-size: 20px;
+            color: #a1a1aa;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* Video Section */
+        .video-section {
+            padding: 40px 0 80px;
+        }
+
+        .video-wrapper {
+            position: relative;
+            max-width: 960px;
+            margin: 0 auto;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 20px 80px rgba(99, 102, 241, 0.2);
+            background: #111118;
+            aspect-ratio: 16 / 9;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .video-placeholder:hover {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+        }
+
+        .video-placeholder.hidden {
+            display: none;
+        }
+
+        .play-button {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .video-placeholder:hover .play-button {
+            transform: scale(1.1);
+            box-shadow: 0 15px 50px rgba(99, 102, 241, 0.6);
+        }
+
+        .play-button svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+            margin-left: 4px;
+        }
+
+        .video-placeholder p {
+            font-size: 18px;
+            color: #c7d2fe;
+            font-weight: 600;
+        }
+
+        .video-placeholder span {
+            font-size: 14px;
+            color: #71717a;
+            margin-top: 8px;
+        }
+
+        /* Workflow Steps Timeline */
+        .workflow-breakdown {
+            padding: 80px 0;
+        }
+
+        .workflow-breakdown .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .workflow-breakdown .section-header h2 {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .workflow-breakdown .section-header p {
+            font-size: 18px;
+            color: #a1a1aa;
+        }
+
+        .timeline {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, #6366f1, #8b5cf6, rgba(139, 92, 246, 0.2));
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .timeline-dot {
+            width: 60px;
+            height: 60px;
+            min-width: 60px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 2px solid #6366f1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            z-index: 1;
+        }
+
+        .timeline-content {
+            padding: 25px 30px;
+            background: rgba(99, 102, 241, 0.05);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 16px;
+            flex: 1;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+
+        .timeline-content:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateX(5px);
+        }
+
+        .timeline-content h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .timeline-content p {
+            color: #a1a1aa;
+            font-size: 15px;
+        }
+
+        .timeline-timestamp {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(99, 102, 241, 0.15);
+            border-radius: 6px;
+            font-size: 12px;
+            color: #a5b4fc;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        /* CTA */
+        .demo-cta {
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .demo-cta-box {
+            padding: 50px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .demo-cta-box h2 {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .demo-cta-box p {
+            font-size: 18px;
+            color: #a1a1aa;
+            margin-bottom: 30px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cta-primary {
+            display: inline-block;
+            padding: 18px 40px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.3);
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(99, 102, 241, 0.5);
+        }
+
+        .cta-secondary {
+            display: inline-block;
+            padding: 18px 40px;
+            background: transparent;
+            color: #c7d2fe;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            transition: transform 0.2s, border-color 0.2s, background 0.2s;
+        }
+
+        .cta-secondary:hover {
+            transform: translateY(-3px);
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(99, 102, 241, 0.1);
+            color: #71717a;
+        }
+
+        @media (max-width: 768px) {
+            .demo-hero h1 { font-size: 32px; }
+            .demo-hero p { font-size: 16px; }
+            .timeline::before { left: 20px; }
+            .timeline-dot { width: 40px; height: 40px; min-width: 40px; font-size: 18px; }
+            .timeline-content { padding: 20px; }
+            .workflow-breakdown .section-header h2 { font-size: 28px; }
+            .cta-buttons { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="index.html" class="logo">IntakeOps AI</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-back">&larr; Back to Home</a>
+                <a href="index.html#final-cta" class="nav-cta">Book a Demo</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="demo-hero">
+        <div class="container">
+            <h1>Watch the AI Workflow<br>Being Built in Real Time</h1>
+            <p>See exactly how we configure your AI receptionist: from intake blueprint to live calls in minutes, not weeks.</p>
+        </div>
+    </section>
+
+    <section class="video-section">
+        <div class="container">
+            <div class="video-wrapper">
+                <!-- Replace the src below with your actual video file or embed URL -->
+                <video id="demo-video" controls preload="metadata">
+                    <source src="assets/workflow-demo.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-placeholder" id="video-overlay" onclick="playVideo()">
+                    <div class="play-button">
+                        <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"></polygon></svg>
+                    </div>
+                    <p>Watch the Full Workflow Demo</p>
+                    <span>See how IntakeOps AI is configured end-to-end</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="workflow-breakdown">
+        <div class="container">
+            <div class="section-header">
+                <h2>What You'll See in the Demo</h2>
+                <p>A step-by-step walkthrough of the AI workflow being created</p>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot">1</div>
+                    <div class="timeline-content">
+                        <div class="timeline-timestamp">Step 1 - Intake Blueprint</div>
+                        <h3>Building the Qualification Logic</h3>
+                        <p>Watch as we configure the intake blueprint with custom questions, qualifier trees, disqualifiers, and escalation rules tailored to your industry vertical.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot">2</div>
+                    <div class="timeline-content">
+                        <div class="timeline-timestamp">Step 2 - Voice AI Setup</div>
+                        <h3>Training the AI Receptionist</h3>
+                        <p>See how the AI voice agent is trained on your business data, including website content, Google Business Profile, service offerings, and pricing.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot">3</div>
+                    <div class="timeline-content">
+                        <div class="timeline-timestamp">Step 3 - CRM Integration</div>
+                        <h3>Connecting Your CRM & Calendar</h3>
+                        <p>Two-way CRM sync is configured with automatic lead creation, tagging, call recording attachments, and follow-up sequence triggers.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot">4</div>
+                    <div class="timeline-content">
+                        <div class="timeline-timestamp">Step 4 - Routing Rules</div>
+                        <h3>Smart Call Routing & Booking</h3>
+                        <p>Business-hours aware routing is set up: instant booking for qualified leads, quote capture, emergency dispatch, and transfer rules for your on-call team.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot">5</div>
+                    <div class="timeline-content">
+                        <div class="timeline-timestamp">Step 5 - Follow-Up Automation</div>
+                        <h3>Closed-Loop Recovery Sequences</h3>
+                        <p>Automatic SMS and email follow-ups are configured for no-answer, after-hours, and abandoned callers to recover every possible lead.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot">6</div>
+                    <div class="timeline-content">
+                        <div class="timeline-timestamp">Step 6 - Go Live</div>
+                        <h3>Live Test Call & Dashboard</h3>
+                        <p>Watch a real test call handled by the AI receptionist, then see the conversion analytics dashboard populate with real-time metrics.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="demo-cta">
+        <div class="container">
+            <div class="demo-cta-box">
+                <h2>Ready to See It Live?</h2>
+                <p>Get a personalized demo with your business data. We'll build your intake workflow on the call.</p>
+                <div class="cta-buttons">
+                    <a href="index.html#final-cta" class="cta-primary">Book Your Live Demo →</a>
+                    <a href="index.html" class="cta-secondary">Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 IntakeOps AI. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function playVideo() {
+            const video = document.getElementById('demo-video');
+            const overlay = document.getElementById('video-overlay');
+            overlay.classList.add('hidden');
+            video.play();
+        }
+    </script>
+</body>
+</html>

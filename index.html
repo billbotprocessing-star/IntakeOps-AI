@@ -127,6 +127,8 @@
             font-weight: 600;
             transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 10px 40px rgba(99, 102, 241, 0.3);
+            border: none;
+            cursor: pointer;
         }
 
         .hero-cta:hover {
@@ -311,8 +313,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 20px;
+            font-weight: 700;
             margin-bottom: 20px;
+            color: white;
+            letter-spacing: -0.5px;
         }
 
         .feature-card h3 {
@@ -363,6 +368,24 @@
             border-radius: 16px;
             text-align: center;
             transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .industry-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .industry-card:hover::before {
+            opacity: 1;
         }
 
         .industry-card:hover {
@@ -373,11 +396,13 @@
         .industry-emoji {
             font-size: 48px;
             margin-bottom: 15px;
+            height: 60px;
         }
 
         .industry-card h3 {
             font-size: 20px;
             margin-bottom: 10px;
+            position: relative;
         }
 
         .industry-card p {
@@ -459,6 +484,54 @@
             transition: border-color 0.3s;
         }
 
+        .demo-video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 16px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.4);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .demo-video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+        }
+
+        .demo-divider {
+            text-align: center;
+            margin: 40px 0 30px;
+            position: relative;
+        }
+
+        .demo-divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .demo-divider span {
+            position: relative;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+            padding: 8px 24px;
+            border-radius: 20px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            font-size: 14px;
+            color: #a1a1aa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .demo-form input:focus,
         .demo-form select:focus {
             outline: none;
@@ -479,6 +552,12 @@
             color: #71717a !important;
             margin-top: 10px !important;
             margin-bottom: 0 !important;
+        }
+
+        @media (max-width: 768px) {
+            .demo-video-wrapper {
+                margin-bottom: 30px;
+            }
         }
 
         /* Footer */
@@ -503,7 +582,7 @@
     <nav>
         <div class="container">
             <div class="logo">IntakeOps AI</div>
-            <a href="#" class="nav-cta">Book a Demo</a>
+            <a href="#demo" class="nav-cta">Book a Demo</a>
         </div>
     </nav>
 
@@ -513,7 +592,7 @@
                 <div class="hero-badge">Priced on Outcomes, Not Minutes</div>
                 <h1>AI Receptionist That<br>Books Jobs, Not Just Calls</h1>
                 <p class="hero-subtitle">24/7 intake workflow automation that qualifies leads, syncs your CRM, and closes the loop—so you never lose another high-intent caller.</p>
-                <a href="#" class="hero-cta">See It In Action →</a>
+                <a href="#demo" class="hero-cta">See It In Action →</a>
             </div>
         </div>
     </section>
@@ -582,7 +661,14 @@
             </div>
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="11" r="1"/>
+                            <circle cx="8" cy="11" r="1"/>
+                            <circle cx="16" cy="11" r="1"/>
+                        </svg>
+                    </div>
                     <h3>AI Voice Receptionist</h3>
                     <p>Natural conversations trained on your business. Answers questions, qualifies intent, and handles objections—24/7, in any language.</p>
                     <ul class="feature-list">
@@ -593,7 +679,11 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🔄</div>
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </div>
                     <h3>Closed-Loop CRM Automation</h3>
                     <p>Automatic lead creation, tagging, and follow-up sequences ensure no caller falls through the cracks.</p>
                     <ul class="feature-list">
@@ -604,7 +694,12 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
                     <h3>Smart Qualification & Routing</h3>
                     <p>Business-hours aware engine that books, quotes, dispatches, or transfers based on caller needs and urgency.</p>
                     <ul class="feature-list">
@@ -615,7 +710,13 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">📊</div>
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                    </div>
                     <h3>Conversion Analytics Dashboard</h3>
                     <p>Real-time metrics that matter: not just call volume, but actual business outcomes.</p>
                     <ul class="feature-list">
@@ -637,27 +738,22 @@
             </div>
             <div class="industry-grid">
                 <div class="industry-card">
-                    <div class="industry-emoji">🔧</div>
                     <h3>Home Services</h3>
                     <p>Plumbing, HVAC, electrical—triage emergencies, book repairs, dispatch techs</p>
                 </div>
                 <div class="industry-card">
-                    <div class="industry-emoji">⚖️</div>
                     <h3>Legal Intake</h3>
                     <p>Case screening, conflict checks, consultation booking, lead qualification</p>
                 </div>
                 <div class="industry-card">
-                    <div class="industry-emoji">💆</div>
                     <h3>Med Spas & Salons</h3>
                     <p>Appointment booking, service recommendations, package upsells, reminders</p>
                 </div>
                 <div class="industry-card">
-                    <div class="industry-emoji">🏢</div>
                     <h3>Property Management</h3>
                     <p>Tenant inquiries, maintenance requests, showing schedules, lease info</p>
                 </div>
                 <div class="industry-card">
-                    <div class="industry-emoji">📍</div>
                     <h3>Multi-Location SMBs</h3>
                     <p>Franchise coordination, location routing, brand consistency at scale</p>
                 </div>
@@ -692,11 +788,29 @@
         </div>
     </section>
 
-    <section class="final-cta">
+    <section class="final-cta" id="demo">
         <div class="container">
             <div class="cta-box">
-                <h2>Stop Losing Leads to Voicemail</h2>
-                <p>See how IntakeOps turns every inbound call into a qualified lead or booked job.</p>
+                <h2>Experience IntakeOps AI Live</h2>
+                <p>Watch how our AI handles a real customer call, then try it yourself</p>
+                
+                <!-- Video Demo -->
+                <div class="demo-video-wrapper">
+                    <iframe 
+                        src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
+                        title="IntakeOps AI Demo" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+
+                <div class="demo-divider">
+                    <span>Try it yourself</span>
+                </div>
+
+                <p style="margin-bottom: 20px;">Enter your details below and we'll call you in 30 seconds to demonstrate IntakeOps AI</p>
+                
                 <div class="demo-form">
                     <input type="tel" id="phone" placeholder="Your phone number" required>
                     <select id="industry" required>
@@ -708,8 +822,7 @@
                         <option value="multi-location">Multi-Location SMB</option>
                         <option value="other">Other</option>
                     </select>
-                    <button class="hero-cta" onclick="handleDemoRequest(event)">Experience IntakeOps Live →</button>
-                    <p class="demo-note">We'll call you in 30 seconds to demo our AI receptionist</p>
+                    <button class="hero-cta" onclick="handleDemoRequest(event)">Call Me Now →</button>
                 </div>
             </div>
         </div>

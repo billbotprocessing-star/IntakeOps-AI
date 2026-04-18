@@ -1,11 +1,34 @@
 {
   "name": "IntakeOps_Base_v1",
   "voice": "rachel",
-  "model": "gpt-4o",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "systemPrompt": "You are the IntakeOps AI receptionist. Follow the intake workflow for your industry. Extract: caller name, issue description, service address, and urgency level (emergency | high | standard | unqualified). Store these in call metadata before ending the call.",
+    "temperature": 0.3
+  },
   "firstMessage": "Thank you for calling. My name is the IntakeOps assistant. Who do I have the pleasure of speaking with?",
   "recordingEnabled": true,
   "transcriber": {
     "provider": "deepgram",
-    "model": "nova-2"
-  }
+    "model": "nova-2",
+    "language": "en-US"
+  },
+  "tools": [
+    {
+      "$ref": "./check_availability.json"
+    },
+    {
+      "$ref": "./check_calendar.json"
+    },
+    {
+      "$ref": "./escalate_to_oncall.json"
+    }
+  ],
+  "serverMessages": ["end-of-call-report", "hang"],
+  "serverUrl": "{{ N8N_WEBHOOK_URL }}/vapi/call-ended",
+  "endCallPhrases": ["goodbye", "thanks, bye", "take care"],
+  "maxDurationSeconds": 600,
+  "backgroundSound": "off",
+  "silenceTimeoutSeconds": 30
 }

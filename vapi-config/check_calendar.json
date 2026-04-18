@@ -1,0 +1,30 @@
+{
+  "type": "function",
+  "function": {
+    "name": "checkCalendar",
+    "description": "Returns the next 2 available appointment slots for the requested service type. Use this for standard (non-emergency) booking requests.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "service_type": {
+          "type": "string",
+          "description": "The type of service being booked (e.g. 'plumbing-routine', 'legal-consultation', 'med-spa-botox', 'property-maintenance')."
+        },
+        "requested_date": {
+          "type": "string",
+          "description": "Optional ISO 8601 date string (YYYY-MM-DD) if the caller requested a specific date. Omit to return the next available slots."
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "description": "Estimated appointment duration in minutes. Defaults to 60 if not specified.",
+          "default": 60
+        }
+      },
+      "required": ["service_type"]
+    }
+  },
+  "server": {
+    "url": "{{ N8N_WEBHOOK_URL }}/vapi/check-calendar",
+    "timeoutSeconds": 10
+  }
+}

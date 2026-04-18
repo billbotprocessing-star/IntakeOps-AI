@@ -1,1 +1,96 @@
-
+{
+  "name": "IntakeOps – Calendar Sync & Availability",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Vapi Tool Call Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi/check-calendar",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "2",
+      "name": "Parse Tool Call Args",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\n// Vapi sends tool call arguments under message.toolCallList[0].function.arguments\nconst args = body.message?.toolCallList?.[0]?.function?.arguments || {};\nconst toolCallId = body.message?.toolCallList?.[0]?.id || '';\n\nconst requested_date = args.requested_date || null; // ISO date string or null for 'next available'\nconst service_type = args.service_type || 'general';\nconst duration_minutes = args.duration_minutes || 60;\n\nreturn [{ json: { tool_call_id: toolCallId, requested_date, service_type, duration_minutes } }];"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Fetch Available Slots",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CALENDAR_API_URL }}/availability",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $env.CALENDAR_API_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "date", "value": "={{ $json.requested_date }}" },
+            { "name": "service", "value": "={{ $json.service_type }}" },
+            { "name": "duration", "value": "={{ $json.duration_minutes }}" },
+            { "name": "limit", "value": "2" }
+          ]
+        },
+        "options": { "timeout": 8000 }
+      }
+    },
+    {
+      "id": "4",
+      "name": "Format Slots for Vapi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "jsCode": "const slots = $input.first().json.slots || [];\nconst toolCallId = $('Parse Tool Call Args').item.json.tool_call_id;\n\nlet slotText = '';\nif (slots.length === 0) {\n  slotText = 'No availability found in the requested window. Our next opening is typically within 2 business days.';\n} else {\n  const formatted = slots.map((s, i) => {\n    const d = new Date(s.start);\n    return `Option ${i + 1}: ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;\n  });\n  slotText = formatted.join(', or ');\n}\n\n// Vapi expects results in this shape\nreturn [{\n  json: {\n    results: [\n      {\n        toolCallId: toolCallId,\n        result: slotText\n      }\n    ]\n  }\n}];"
+      }
+    },
+    {
+      "id": "5",
+      "name": "Return Slots to Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Vapi Tool Call Webhook": {
+      "main": [[{ "node": "Parse Tool Call Args", "type": "main", "index": 0 }]]
+    },
+    "Parse Tool Call Args": {
+      "main": [[{ "node": "Fetch Available Slots", "type": "main", "index": 0 }]]
+    },
+    "Fetch Available Slots": {
+      "main": [[{ "node": "Format Slots for Vapi", "type": "main", "index": 0 }]]
+    },
+    "Format Slots for Vapi": {
+      "main": [[{ "node": "Return Slots to Vapi", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": ["intakeops", "vapi", "calendar"]
+}

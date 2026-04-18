@@ -1,1 +1,136 @@
-
+{
+  "name": "IntakeOps – Post-Call Intake",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Vapi Call Ended Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi/call-ended",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "2",
+      "name": "Extract Call Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\nconst call = body.call || {};\nconst metadata = call.metadata || {};\n\nconst extracted = {\n  call_id: call.id || '',\n  caller_phone: call.customer?.number || '',\n  caller_name: metadata.caller_name || 'Unknown',\n  issue_description: metadata.issue_description || '',\n  urgency_level: metadata.urgency_level || 'standard',\n  service_address: metadata.service_address || '',\n  industry: metadata.industry || 'general',\n  call_duration_seconds: (call.endedAt && call.startedAt)\n    ? Math.round((new Date(call.endedAt) - new Date(call.startedAt)) / 1000)\n    : 0,\n  transcript: call.transcript || '',\n  recording_url: call.recordingUrl || '',\n  ended_reason: call.endedReason || '',\n  timestamp: new Date().toISOString()\n};\n\nreturn [{ json: extracted }];"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Push to CRM Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_WEBHOOK_URL }}/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": { "timeout": 10000 }
+      }
+    },
+    {
+      "id": "4",
+      "name": "Is Emergency?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $('Extract Call Data').item.json.urgency_level }}",
+              "rightValue": "emergency",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "5",
+      "name": "SMS – Emergency On-Call Alert",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1120, 160],
+      "parameters": {
+        "operation": "send",
+        "from": "={{ $env.TWILIO_FROM_NUMBER }}",
+        "to": "={{ $env.ON_CALL_PHONE }}",
+        "message": "🚨 EMERGENCY INTAKE — {{ $('Extract Call Data').item.json.caller_name }} at {{ $('Extract Call Data').item.json.service_address }}. Issue: {{ $('Extract Call Data').item.json.issue_description }}. Call back: {{ $('Extract Call Data').item.json.caller_phone }}"
+      }
+    },
+    {
+      "id": "6",
+      "name": "SMS – Caller Confirmation",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1120, 440],
+      "parameters": {
+        "operation": "send",
+        "from": "={{ $env.TWILIO_FROM_NUMBER }}",
+        "to": "={{ $('Extract Call Data').item.json.caller_phone }}",
+        "message": "Hi {{ $('Extract Call Data').item.json.caller_name }}, your intake has been received. Our team will follow up within 1 business hour. Reply STOP to opt out."
+      }
+    },
+    {
+      "id": "7",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"status\": \"ok\" }"
+      }
+    }
+  ],
+  "connections": {
+    "Vapi Call Ended Webhook": {
+      "main": [[{ "node": "Extract Call Data", "type": "main", "index": 0 }]]
+    },
+    "Extract Call Data": {
+      "main": [[{ "node": "Push to CRM Backend", "type": "main", "index": 0 }]]
+    },
+    "Push to CRM Backend": {
+      "main": [[{ "node": "Is Emergency?", "type": "main", "index": 0 }]]
+    },
+    "Is Emergency?": {
+      "main": [
+        [{ "node": "SMS – Emergency On-Call Alert", "type": "main", "index": 0 }],
+        [{ "node": "SMS – Caller Confirmation", "type": "main", "index": 0 }]
+      ]
+    },
+    "SMS – Emergency On-Call Alert": {
+      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    },
+    "SMS – Caller Confirmation": {
+      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": ["intakeops", "vapi", "post-call"]
+}

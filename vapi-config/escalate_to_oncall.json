@@ -1,0 +1,38 @@
+{
+  "type": "function",
+  "function": {
+    "name": "escalateToOnCall",
+    "description": "Immediately notifies the on-call technician or attorney via SMS when the AI detects an emergency. Use only when urgency_level is 'emergency'. After calling this tool, tell the caller the on-call team has been notified and will call them back within 15 minutes.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "caller_name": {
+          "type": "string",
+          "description": "Full name of the caller."
+        },
+        "caller_phone": {
+          "type": "string",
+          "description": "Caller's callback phone number."
+        },
+        "service_address": {
+          "type": "string",
+          "description": "The address where the emergency is occurring."
+        },
+        "issue_description": {
+          "type": "string",
+          "description": "Brief description of the emergency (e.g. 'burst pipe flooding kitchen', 'sewage backup in basement')."
+        },
+        "industry": {
+          "type": "string",
+          "enum": ["plumbing", "legal", "med-spa", "property-management", "general"],
+          "description": "The industry vertical so the right on-call team is notified."
+        }
+      },
+      "required": ["caller_name", "caller_phone", "issue_description", "industry"]
+    }
+  },
+  "server": {
+    "url": "{{ N8N_WEBHOOK_URL }}/vapi/escalate",
+    "timeoutSeconds": 8
+  }
+}

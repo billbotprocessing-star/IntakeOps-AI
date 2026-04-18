@@ -1,1 +1,21 @@
-
+{
+  "type": "function",
+  "function": {
+    "name": "check_service_availability",
+    "description": "Checks whether the caller's ZIP code falls within the business's service area. Call this before quoting or booking.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "zip_code": {
+          "type": "string",
+          "description": "The 5-digit ZIP code provided by the caller."
+        }
+      },
+      "required": ["zip_code"]
+    }
+  },
+  "server": {
+    "url": "{{ N8N_WEBHOOK_URL }}/vapi/check-service-area",
+    "timeoutSeconds": 8
+  }
+}

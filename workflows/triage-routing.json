@@ -1,1 +1,214 @@
-
+{
+  "name": "IntakeOps – Triage Routing",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Intake Triage Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intakeops/triage",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "2",
+      "name": "Route by Urgency",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [460, 300],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency_level }}",
+                    "rightValue": "emergency",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "emergency"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency_level }}",
+                    "rightValue": "high",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "high"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency_level }}",
+                    "rightValue": "standard",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "standard"
+            }
+          ]
+        },
+        "fallbackOutput": "unqualified"
+      }
+    },
+    {
+      "id": "3",
+      "name": "SMS – Page On-Call Tech",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [720, 60],
+      "parameters": {
+        "operation": "send",
+        "from": "={{ $env.TWILIO_FROM_NUMBER }}",
+        "to": "={{ $env.ON_CALL_PHONE }}",
+        "message": "🚨 EMERGENCY — {{ $json.caller_name }} ({{ $json.caller_phone }}): {{ $json.issue_description }} @ {{ $json.service_address }}. Respond immediately."
+      }
+    },
+    {
+      "id": "4",
+      "name": "CRM – Create Emergency Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 60],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_WEBHOOK_URL }}/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ ...($json), priority: 'CRITICAL', status: 'escalated' }) }}"
+      }
+    },
+    {
+      "id": "5",
+      "name": "CRM – High Priority Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [720, 220],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_WEBHOOK_URL }}/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ ...($json), priority: 'HIGH', status: 'pending_callback' }) }}"
+      }
+    },
+    {
+      "id": "6",
+      "name": "CRM – Standard Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [720, 380],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_WEBHOOK_URL }}/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ ...($json), priority: 'NORMAL', status: 'queued' }) }}"
+      }
+    },
+    {
+      "id": "7",
+      "name": "CRM – Log Unqualified",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [720, 540],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_WEBHOOK_URL }}/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ ...($json), status: 'unqualified', follow_up: false }) }}"
+      }
+    },
+    {
+      "id": "8",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"status\": \"routed\" }"
+      }
+    }
+  ],
+  "connections": {
+    "Intake Triage Webhook": {
+      "main": [[{ "node": "Route by Urgency", "type": "main", "index": 0 }]]
+    },
+    "Route by Urgency": {
+      "main": [
+        [{ "node": "SMS – Page On-Call Tech", "type": "main", "index": 0 }],
+        [{ "node": "CRM – High Priority Ticket", "type": "main", "index": 0 }],
+        [{ "node": "CRM – Standard Ticket", "type": "main", "index": 0 }],
+        [{ "node": "CRM – Log Unqualified", "type": "main", "index": 0 }]
+      ]
+    },
+    "SMS – Page On-Call Tech": {
+      "main": [[{ "node": "CRM – Create Emergency Ticket", "type": "main", "index": 0 }]]
+    },
+    "CRM – Create Emergency Ticket": {
+      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    },
+    "CRM – High Priority Ticket": {
+      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    },
+    "CRM – Standard Ticket": {
+      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    },
+    "CRM – Log Unqualified": {
+      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": ["intakeops", "triage", "routing"]
+}

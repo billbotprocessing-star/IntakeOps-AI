@@ -2,7 +2,7 @@ function Sidebar({ route }) {
   const items = [
     ["Overview",     "layout-dashboard",  "overview"],
     ["Live Calls",   "phone-incoming",    "live-calls",   2],
-    ["Leads",        "users",             "leads"],
+    ["Leads",        "users",             "leads",       12],
     ["Bookings",     "calendar-check",    "bookings"],
     ["Recordings",   "mic",               "recordings"],
     ["Blueprints",   "sliders-horizontal","blueprints"],

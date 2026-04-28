@@ -1,24 +1,27 @@
-function Sidebar() {
+function Sidebar({ route }) {
   const items = [
-    ["Overview", "layout-dashboard", true],
-    ["Live Calls", "phone-incoming", false],
-    ["Leads", "users", false],
-    ["Bookings", "calendar-check", false],
-    ["Recordings", "mic", false],
-    ["Blueprints", "sliders-horizontal", false],
-    ["Integrations", "database", false],
-    ["Settings", "settings", false],
+    ["Overview",     "layout-dashboard",  "overview"],
+    ["Live Calls",   "phone-incoming",    "live-calls",   2],
+    ["Leads",        "users",             "leads"],
+    ["Bookings",     "calendar-check",    "bookings"],
+    ["Recordings",   "mic",               "recordings"],
+    ["Blueprints",   "sliders-horizontal","blueprints"],
+    ["Integrations", "database",          "integrations"],
+    ["Settings",     "settings",          "settings"],
   ];
   return (
     <aside className="sidebar">
-     <div className="brand">
-  <div className="brand-text">IntakeOps<span> AI</span></div>
-</div>
+      <div className="brand">
+        <div className="brand-text">IntakeOps<span> AI</span></div>
+      </div>
       <nav className="nav-list">
-        {items.map(([label, icon, active]) => (
-          <a key={label} className={"nav-item" + (active ? " active" : "")} href="#">
+        {items.map(([label, icon, slug, badge]) => (
+          <a key={slug}
+             className={"nav-item" + (route === slug ? " active" : "")}
+             href={`#/${slug}`}>
             <i data-lucide={icon}></i>
             <span>{label}</span>
+            {badge ? <span className="nav-count">{badge}</span> : null}
           </a>
         ))}
       </nav>
@@ -33,12 +36,12 @@ function Sidebar() {
   );
 }
 
-function TopBar() {
+function TopBar({ eyebrow, title }) {
   return (
     <header className="topbar">
       <div>
-        <div className="eyebrow">Overview</div>
-        <h1 className="page-title">Conversion Dashboard</h1>
+        <div className="eyebrow">{eyebrow}</div>
+        <h1 className="page-title">{title}</h1>
       </div>
       <div className="topbar-right">
         <div className="pill-select">

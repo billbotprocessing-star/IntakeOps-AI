@@ -11,10 +11,9 @@ function Sidebar() {
   ];
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <img src="logo-mark.svg" width="32" height="32" alt=""/>
-        <div className="brand-text">IntakeOps<span> AI</span></div>
-      </div>
+     <div className="brand">
+  <div className="brand-text">IntakeOps<span> AI</span></div>
+</div>
       <nav className="nav-list">
         {items.map(([label, icon, active]) => (
           <a key={label} className={"nav-item" + (active ? " active" : "")} href="#">

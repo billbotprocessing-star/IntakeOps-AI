@@ -52,6 +52,46 @@
             background-clip: text;
         }
 
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .nav-link {
+            padding: 12px 20px;
+            color: #c7d2fe;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            background: rgba(99, 102, 241, 0.05);
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.12);
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .nav-link .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #a5f3fc;
+            box-shadow: 0 0 8px #a5f3fc;
+            animation: livePulse 1.8s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            50% { opacity: 0.3; }
+        }
+
         .nav-cta {
             padding: 12px 28px;
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
@@ -116,6 +156,13 @@
             margin-right: auto;
         }
 
+        .hero-ctas {
+            display: inline-flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
         .hero-cta {
             display: inline-block;
             padding: 18px 40px;
@@ -134,6 +181,25 @@
         .hero-cta:hover {
             transform: translateY(-3px);
             box-shadow: 0 15px 50px rgba(99, 102, 241, 0.5);
+        }
+
+        .hero-cta-secondary {
+            display: inline-block;
+            padding: 18px 40px;
+            background: rgba(99, 102, 241, 0.08);
+            color: #c7d2fe;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+        }
+
+        .hero-cta-secondary:hover {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.6);
+            transform: translateY(-3px);
         }
 
         .hero-badge {
@@ -350,6 +416,28 @@
             font-weight: 700;
         }
 
+        .feature-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 20px;
+            padding: 10px 18px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 8px;
+            color: #c7d2fe;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+        }
+
+        .feature-link:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateX(3px);
+        }
+
         /* Industries */
         .industries {
             padding: 100px 0;
@@ -486,7 +574,7 @@
 
         .demo-video-wrapper {
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            padding-bottom: 56.25%;
             height: 0;
             overflow: hidden;
             border-radius: 16px;
@@ -558,9 +646,14 @@
             .demo-video-wrapper {
                 margin-bottom: 30px;
             }
+            .nav-link span.nav-link-label {
+                display: none;
+            }
+            .nav-link {
+                padding: 12px 14px;
+            }
         }
 
-        /* Footer */
         footer {
             padding: 40px 0;
             text-align: center;
@@ -582,7 +675,13 @@
     <nav>
         <div class="container">
             <div class="logo">IntakeOps AI</div>
-            <a href="#demo" class="nav-cta">Book a Demo</a>
+            <div class="nav-actions">
+                <a href="dashboard/" class="nav-link" title="Preview your conversion dashboard">
+                    <span class="live-dot"></span>
+                    <span class="nav-link-label">Preview Dashboard</span>
+                </a>
+                <a href="#demo" class="nav-cta">Book a Demo</a>
+            </div>
         </div>
     </nav>
 
@@ -592,7 +691,10 @@
                 <div class="hero-badge">Priced on Outcomes, Not Minutes</div>
                 <h1>AI Receptionist That<br>Books Jobs, Not Just Calls</h1>
                 <p class="hero-subtitle">24/7 intake workflow automation that qualifies leads, syncs your CRM, and closes the loop—so you never lose another high-intent caller.</p>
-                <a href="#demo" class="hero-cta">See It In Action →</a>
+                <div class="hero-ctas">
+                    <a href="#demo" class="hero-cta">See It In Action →</a>
+                    <a href="dashboard/" class="hero-cta-secondary">Preview Dashboard</a>
+                </div>
             </div>
         </div>
     </section>
@@ -725,6 +827,7 @@
                         <li>Booking & appointment show rate</li>
                         <li>Time-to-response & spam suppression</li>
                     </ul>
+                    <a href="dashboard/" class="feature-link">Preview the dashboard →</a>
                 </div>
             </div>
         </div>
@@ -794,7 +897,6 @@
                 <h2>Experience IntakeOps AI Live</h2>
                 <p>Watch how our AI handles a real customer call, then try it yourself</p>
                 
-                <!-- Video Demo -->
                 <div class="demo-video-wrapper">
                     <iframe 
                         src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
@@ -843,7 +945,6 @@
             const userPhone = phoneInput.value;
             const selectedIndustry = industryInput.value;
 
-            // Basic validation
             if (!userPhone || !selectedIndustry) {
                 alert('Please fill in all fields');
                 return;
@@ -867,7 +968,6 @@
                 }
                 const data = await response.json().catch(() => null);
                 alert("Success! IntakeOps AI is processing your request.");
-                // Clear form safely
                 if (phoneInput) phoneInput.value = "";
                 if (industryInput) industryInput.value = "";
             } catch (error) {

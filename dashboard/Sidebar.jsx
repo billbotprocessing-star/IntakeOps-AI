@@ -3,7 +3,7 @@ function Sidebar({ route }) {
     ["Overview",     "layout-dashboard",  "overview"],
     ["Live Calls",   "phone-incoming",    "live-calls",   2],
     ["Leads",        "users",             "leads",       12],
-    ["Bookings",     "calendar-check",    "bookings"],
+    ["Bookings",     "calendar-check",    "bookings",     8],
     ["Recordings",   "mic",               "recordings"],
     ["Blueprints",   "sliders-horizontal","blueprints"],
     ["Integrations", "database",          "integrations"],

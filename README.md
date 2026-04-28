@@ -159,8 +159,7 @@ Businesses don't need "minutes answered"; they need **qualified leads** and **bo
 │   ├── legal-intake.md     # Conflict checks & Statute of Limitations
 │   ├── property-mgmt.md    # Routing for Tenants vs. Owners
 │   └── med-spa.md          # Medical screening & Deposit logic
-│
-├── /frontend               # The Website
+│         
 │   ├── index.html          # Your landing page code
 │   └── styles.css          # Tailwind/CSS configurations
 │

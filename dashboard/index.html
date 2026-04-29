@@ -349,6 +349,7 @@
   <script type="text/babel" src="LiveCalls.jsx"></script>
   <script type="text/babel" src="Leads.jsx"></script>
   <script type="text/babel" src="Bookings.jsx"></script>
+  <script type="text/babel" src="Recordings.jsx"></script>
 
   <script type="text/babel">
     function useHashRoute() {
@@ -369,6 +370,7 @@
       if (route === 'live-calls') page = <LiveCalls/>;
       else if (route === 'leads') page = <Leads/>;
       else if (route === 'bookings') page = <Bookings/>;
+      else if (route === 'recordings') page = <Recordings/>;
       else page = (
         <>
           <KpiRow/>
@@ -380,10 +382,11 @@
       );
 
       const titles = {
-        'overview':   { eyebrow: 'Overview',   title: 'Conversion Dashboard' },
-        'live-calls': { eyebrow: 'Operations', title: 'Live Calls' },
-        'leads':      { eyebrow: 'Pipeline',   title: 'Leads' },
-        'bookings':   { eyebrow: 'Schedule',   title: 'Bookings' },
+        'overview':    { eyebrow: 'Overview',    title: 'Conversion Dashboard' },
+        'live-calls':  { eyebrow: 'Operations',  title: 'Live Calls' },
+        'leads':       { eyebrow: 'Pipeline',    title: 'Leads' },
+        'bookings':    { eyebrow: 'Schedule',    title: 'Bookings' },
+        'recordings':  { eyebrow: 'Quality',     title: 'Recordings' },
       };
       const t = titles[route] || titles.overview;
 

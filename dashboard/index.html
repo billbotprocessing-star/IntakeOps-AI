@@ -333,6 +333,41 @@
       .booking-row > :nth-child(n+3){display:none}
       .cal-week{grid-template-columns:50px repeat(7, minmax(80px, 1fr));overflow-x:auto}
     }
+
+    /* ===== Blueprints ===== */
+    .bp-list{display:flex;flex-direction:column}
+    .bp-list-row{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-bottom:1px solid var(--indigo-a10);cursor:pointer;transition:background .15s;border-left:3px solid transparent}
+    .bp-list-row:hover{background:var(--indigo-a05)}
+    .bp-list-row.selected{background:var(--indigo-a10);border-left-color:var(--indigo-500)}
+    .bp-icon{width:36px;height:36px;border-radius:10px;background:var(--indigo-a10);border:1px solid var(--indigo-a30);display:grid;place-items:center;color:var(--indigo-200);flex-shrink:0}
+    .bp-list-name{font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .bp-list-sub{font-size:11px;color:var(--fg-muted);margin-top:3px}
+    .bp-list-foot{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:var(--fg-faint);flex-wrap:wrap}
+
+    .bp-flow{display:flex;flex-direction:column}
+    .bp-phase-row{display:grid;grid-template-columns:36px 1fr;gap:14px}
+    .bp-connector{display:flex;justify-content:center;height:22px}
+    .bp-connector::before{content:'';width:2px;height:100%;background:var(--indigo-a20)}
+    .bp-num{width:36px;height:36px;border-radius:50%;background:var(--indigo-a10);border:1px solid var(--indigo-a30);display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--indigo-200);font-family:var(--font-mono);flex-shrink:0}
+    .bp-phase-card{padding:14px 16px;background:rgba(20,20,28,0.5);border:1px solid var(--indigo-a10);border-radius:12px}
+    .bp-phase-card.branch{border-color:rgba(253,230,138,0.2);background:rgba(253,230,138,0.02)}
+    .bp-phase-name{font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+    .bp-phase-goal{font-size:12px;color:var(--fg-muted);margin-bottom:10px;line-height:1.5}
+    .bp-phase-step{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--fg-2);line-height:1.5;margin-bottom:4px}
+    .bp-phase-step::before{content:'›';color:var(--indigo-200);font-weight:700;flex-shrink:0}
+    .bp-tool{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:var(--indigo-a10);border:1px solid var(--indigo-a30);border-radius:6px;font-size:10px;font-weight:600;color:var(--indigo-200);font-family:var(--font-mono);margin-top:10px}
+    .bp-branch{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:rgba(253,230,138,0.1);border:1px solid rgba(253,230,138,0.25);border-radius:6px;font-size:10px;font-weight:600;color:var(--amber-200)}
+
+    .bp-check-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--indigo-a10)}
+    .bp-check-row:last-child{border-bottom:none}
+    .bp-check-label{flex:1;font-size:13px;color:var(--fg-2)}
+    .bp-check-pct{font-size:11px;font-weight:700;font-family:var(--font-mono)}
+    .bp-track{width:72px;height:5px;background:var(--indigo-a10);border-radius:9999px;overflow:hidden;flex-shrink:0}
+    .bp-fill{height:100%;border-radius:9999px}
+
+    .bp-guardrail{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--indigo-a10);font-size:13px;color:var(--fg-2);line-height:1.5}
+    .bp-guardrail:last-child{border-bottom:none}
+    .bp-guardrail-icon{width:22px;height:22px;border-radius:6px;background:rgba(254,202,202,0.08);border:1px solid rgba(254,202,202,0.2);display:grid;place-items:center;color:var(--red-200);flex-shrink:0;margin-top:1px}
   </style>
 </head>
 <body>
@@ -350,6 +385,7 @@
   <script type="text/babel" src="Leads.jsx"></script>
   <script type="text/babel" src="Bookings.jsx"></script>
   <script type="text/babel" src="Recordings.jsx"></script>
+  <script type="text/babel" src="Blueprints.jsx"></script>
 
   <script type="text/babel">
     function useHashRoute() {
@@ -370,7 +406,8 @@
       if (route === 'live-calls') page = <LiveCalls/>;
       else if (route === 'leads') page = <Leads/>;
       else if (route === 'bookings') page = <Bookings/>;
-      else if (route === 'recordings') page = <Recordings/>;
+      else if (route === 'recordings')  page = <Recordings/>;
+      else if (route === 'blueprints')  page = <Blueprints/>;
       else page = (
         <>
           <KpiRow/>
@@ -386,7 +423,8 @@
         'live-calls':  { eyebrow: 'Operations',  title: 'Live Calls' },
         'leads':       { eyebrow: 'Pipeline',    title: 'Leads' },
         'bookings':    { eyebrow: 'Schedule',    title: 'Bookings' },
-        'recordings':  { eyebrow: 'Quality',     title: 'Recordings' },
+        'recordings':  { eyebrow: 'Quality',     title: 'Recordings'  },
+        'blueprints':  { eyebrow: 'AI Config',   title: 'Blueprints'  },
       };
       const t = titles[route] || titles.overview;
 

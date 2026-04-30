@@ -368,6 +368,25 @@
     .bp-guardrail{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--indigo-a10);font-size:13px;color:var(--fg-2);line-height:1.5}
     .bp-guardrail:last-child{border-bottom:none}
     .bp-guardrail-icon{width:22px;height:22px;border-radius:6px;background:rgba(254,202,202,0.08);border:1px solid rgba(254,202,202,0.2);display:grid;place-items:center;color:var(--red-200);flex-shrink:0;margin-top:1px}
+
+    /* ===== Integrations ===== */
+    .int-icon-muted{opacity:.5;background:rgba(113,113,122,0.1);border-color:rgba(113,113,122,0.25);color:var(--fg-faint)}
+    .int-detail-icon{width:48px;height:48px;border-radius:12px;background:var(--indigo-a10);border:1px solid var(--indigo-a30);display:grid;place-items:center;color:var(--indigo-200);flex-shrink:0}
+
+    .int-env-list{display:flex;flex-direction:column;gap:8px}
+    .int-env-row{display:grid;grid-template-columns:200px 1fr auto;gap:12px;align-items:center;padding:11px 14px;background:rgba(10,10,15,0.5);border:1px solid var(--indigo-a10);border-radius:10px}
+    .int-env-key{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--indigo-200);letter-spacing:.3px}
+    .int-env-val{font-size:12px;color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .int-env-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+
+    .int-config-list{display:flex;flex-direction:column;gap:8px}
+    .int-config-row{display:grid;grid-template-columns:200px 1fr;gap:14px;padding:12px 14px;background:rgba(10,10,15,0.5);border:1px solid var(--indigo-a10);border-radius:10px;align-items:flex-start}
+    .int-config-key{font-size:12px;font-weight:600;color:var(--fg-muted);text-transform:capitalize}
+    .int-config-val{font-size:12px;color:var(--fg-2);min-width:0}
+
+    @media(max-width:780px){
+      .int-env-row,.int-config-row{grid-template-columns:1fr;gap:6px}
+    }
   </style>
 </head>
 <body>
@@ -386,6 +405,7 @@
   <script type="text/babel" src="Bookings.jsx"></script>
   <script type="text/babel" src="Recordings.jsx"></script>
   <script type="text/babel" src="Blueprints.jsx"></script>
+  <script type="text/babel" src="Integrations.jsx"></script>
 
   <script type="text/babel">
     function useHashRoute() {
@@ -403,11 +423,12 @@
       React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [route]);
 
       let page;
-      if (route === 'live-calls') page = <LiveCalls/>;
-      else if (route === 'leads') page = <Leads/>;
-      else if (route === 'bookings') page = <Bookings/>;
-      else if (route === 'recordings')  page = <Recordings/>;
-      else if (route === 'blueprints')  page = <Blueprints/>;
+      if (route === 'live-calls')        page = <LiveCalls/>;
+      else if (route === 'leads')        page = <Leads/>;
+      else if (route === 'bookings')     page = <Bookings/>;
+      else if (route === 'recordings')   page = <Recordings/>;
+      else if (route === 'blueprints')   page = <Blueprints/>;
+      else if (route === 'integrations') page = <Integrations/>;
       else page = (
         <>
           <KpiRow/>
@@ -419,12 +440,13 @@
       );
 
       const titles = {
-        'overview':    { eyebrow: 'Overview',    title: 'Conversion Dashboard' },
-        'live-calls':  { eyebrow: 'Operations',  title: 'Live Calls' },
-        'leads':       { eyebrow: 'Pipeline',    title: 'Leads' },
-        'bookings':    { eyebrow: 'Schedule',    title: 'Bookings' },
-        'recordings':  { eyebrow: 'Quality',     title: 'Recordings'  },
-        'blueprints':  { eyebrow: 'AI Config',   title: 'Blueprints'  },
+        'overview':     { eyebrow: 'Overview',    title: 'Conversion Dashboard' },
+        'live-calls':   { eyebrow: 'Operations',  title: 'Live Calls' },
+        'leads':        { eyebrow: 'Pipeline',    title: 'Leads' },
+        'bookings':     { eyebrow: 'Schedule',    title: 'Bookings' },
+        'recordings':   { eyebrow: 'Quality',     title: 'Recordings'  },
+        'blueprints':   { eyebrow: 'AI Config',   title: 'Blueprints'  },
+        'integrations': { eyebrow: 'Connections', title: 'Integrations' },
       };
       const t = titles[route] || titles.overview;
 

@@ -16,7 +16,7 @@ Core outcomes:
 
 ## 🚀 What to expect
 
-The live web experience: https://billbotprocessing-star.github.io/IntakeOps-AI/ demonstrates how IntakeOps-AI operates as a **closed-loop intake system**:
+The IntakeOps web app (landing page + client dashboard, hosted on Netlify) demonstrates how IntakeOps-AI operates as a **closed-loop intake system**:
 
 ### 🗣 AI Voice Receptionist
 An AI receptionist trained on your business intake logic:
@@ -117,8 +117,8 @@ IntakeOps-AI ensures every inbound opportunity is handled the same way — corre
 
 ## 🔗 Live Web Experience
 
-The GitHub Pages site presents the marketing view and operational concept of the system in action.
-Link: https://billbotprocessing-star.github.io/IntakeOps-AI/
+The web app presents the marketing view and operational concept of the system in action.
+Link: _add your Netlify URL here once the site is deployed._
 
 ---
 
@@ -141,8 +141,77 @@ Businesses don't need "minutes answered"; they need **qualified leads** and **bo
 ## Tech Stack
 - **Voice Interface:** [Vapi.ai](https://vapi.ai)
 - **Intelligence:** [OpenAI GPT-4o](https://openai.com)
-- **Connectivity Layer:** [n8n](https://n8n.io) (Self-hosted/Cloud)
-- **Data Engine:** Structured JSON Outputs via Pydantic logic.
+- **Connectivity Layer:** [n8n](https://n8n.io) — the workflows in `/workflows`
+- **App:** React + Vite, hosted on [Netlify](https://netlify.com)
+- **API:** Netlify Functions (TypeScript) under `/api/*`
+- **Data & login:** [Supabase](https://supabase.com) (Postgres + Auth)
+- **CRM / SMS:** HubSpot, Twilio
+
+---
+
+## The app
+
+| URL | What it is |
+|-----|-----------|
+| `/` | Marketing site with the "call me now" demo form |
+| `/login` | Client sign-in (Supabase Auth, email + password) |
+| `/app` | Dashboard: KPIs and daily call volume |
+| `/app/leads` | Every handled call, with transcript, recording and a status you can update |
+| `/app/tickets` | Prioritized follow-ups from triage routing |
+| `/app/missed-calls` | Missed callers and whether they got a recovery text |
+| `/app/demo-requests` | Demo calls requested from the landing page |
+| `/app/integrations` | Which services are configured, and the webhook URLs for n8n |
+
+## Webhook API
+
+The endpoints the n8n workflows call keep the same paths, JSON bodies and
+`X-API-Key` header as the old FastAPI backend. Each call is now also saved to
+Supabase so it shows up in the dashboard.
+
+| Method & path | Called by | Does |
+|---|---|---|
+| `POST /api/leads` | post-call-intake, triage-routing | Stores the lead, creates a HubSpot contact + deal, texts the caller (or pages on-call for emergencies) |
+| `POST /api/tickets` | triage-routing | Stores a prioritized ticket, creates a HubSpot contact + deal |
+| `POST /api/missed-calls` | lead-recovery | Stores the missed call, adds a HubSpot note |
+| `POST /api/escalate` | Vapi `escalateToOnCall` via n8n | Texts `ON_CALL_PHONE`; returns 502 if the text couldn't be sent |
+| `POST /api/demo-request` | landing page form | Forwards to the n8n `demo-request` webhook (no API key; input is validated) |
+| `GET /api/health` | uptime checks | `{"status":"ok"}` |
+
+---
+
+## Setup
+
+### 1. Supabase
+1. Create a project at supabase.com.
+2. Run `supabase/migrations/0001_intakeops.sql` in the SQL editor.
+3. **Authentication → Providers → Email:** turn off "Allow new users to sign up",
+   then add each dashboard user under **Authentication → Users**. Any signed-in
+   user can see all data, so only invite people who should.
+
+### 2. Netlify
+1. **Add new site → Import from Git**, pick this repo. Build settings come from `netlify.toml`.
+2. **Site configuration → Environment variables:** add everything in `.env.example`
+   under *INTAKEOPS API*, *SUPABASE*, *TWILIO* and *CRM (HUBSPOT)*.
+3. Deploy, then open `/app/integrations` to confirm each service shows **Connected**.
+
+### 3. n8n
+Set `CRM_WEBHOOK_URL` to `https://<your-site>.netlify.app/api` and make sure
+`INTAKEOPS_API_KEY` matches the Netlify value. No workflow edits are needed.
+Once calls show up in the dashboard, the old Railway backend can be shut down.
+
+### 4. GitHub Pages
+The repo root is now the app's source, not a static page, so turn off GitHub
+Pages (**Settings → Pages**) and point links at the Netlify URL instead.
+
+## Local development
+
+```bash
+npm install
+npm run dev        # frontend only, http://localhost:5173
+npx netlify dev    # frontend + functions, reads env from Netlify or .env
+npm test           # function tests (replays the n8n payloads)
+npm run build      # typecheck + production build
+```
 
 ---
 
@@ -150,32 +219,15 @@ Businesses don't need "minutes answered"; they need **qualified leads** and **bo
 
 ```text
 /IntakeOps-AI
-│
-├── /assets                 # Visual Identity
-│   └── landing-page.png    # Screenshot of your Claude-generated UI
-│
-├── /blueprints             # Industry Intellectual Property (IP)
-│   ├── plumbing-flow.md    # Triage & Emergency logic
-│   ├── legal-intake.md     # Conflict checks & Statute of Limitations
-│   ├── property-mgmt.md    # Routing for Tenants vs. Owners
-│   └── med-spa.md          # Medical screening & Deposit logic
-│         
-│   ├── index.html          # Your landing page code
-│   └── styles.css          # Tailwind/CSS configurations
-│
-├── /vapi-config            # Voice Agent Infrastructure
-│   ├── assistant-base.json # Global settings (Voice, Model, Latency)
-│   └── tools/              # API schemas for live lookups
-│       └── check-availability.json
-│
-├── /sales-assets           # The Revenue Engine
-│   ├── ROI-Calculator.md   # Formula for client profit projections
-│   └── Battle-Cards.md     # Objection handling & Sales talk tracks
-│
-├── /legal-ops              # Compliance & Trust
-│   ├── AI-Guardrails.md    # Safety standards and hallucination prevention
-│   └── Privacy-Policy.md   # Data handling and recording disclosure
-│
-├── .env.example            # Template for API Keys (Vapi, OpenAI)
-├── LICENSE                 # Legal right to use code (e.g., MIT)
-└── README.md               # The Executive Summary & Setup Guide
+├── index.html, src/        # React app (landing page + dashboard)
+├── netlify/functions/      # Webhook API — one file per endpoint
+├── netlify/lib/            # Shared: validation, HubSpot, Twilio, Supabase
+├── supabase/migrations/    # Database schema + row-level security
+├── tests/                  # Function tests
+├── workflows/              # n8n workflows
+├── vapi-config/            # Vapi assistant + tool schemas
+├── prompts/, blueprint/    # Industry intake prompts and playbooks
+├── sales-assets/, legal-ops/
+├── netlify.toml
+└── .env.example
+```

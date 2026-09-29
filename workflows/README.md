@@ -37,9 +37,19 @@ Your production webhook URLs are `https://billbotprocessing.app.n8n.cloud/webhoo
 - Tool `check_service_availability` → `…/webhook/vapi/check-service-area`
 - Tool `checkCalendar` → `…/webhook/vapi/check-calendar`
 
-In the assistant's **Analysis → Structured Data**, paste the schema from
-`vapi-config/structured-data-schema.json`. Post-Call Intake reads the caller's
-name, issue, address, urgency and industry from it.
+Post-Call Intake reads the caller's details from the assistant's **Analysis** tab:
+
+- **Structured Outputs** (newer Vapi accounts): add one field per row below, named exactly as shown.
+
+  | Name | Type | Allowed values |
+  |---|---|---|
+  | `caller_name` | string | |
+  | `issue_description` | string | |
+  | `service_address` | string | |
+  | `urgency_level` | string | `emergency`, `high`, `standard`, `unqualified` |
+  | `industry` | string | `plumbing`, `legal`, `med-spa`, `property-management`, `general` |
+
+- **Structured Data** (older accounts): paste `vapi-config/structured-data-schema.json`.
 
 ## Notes
 

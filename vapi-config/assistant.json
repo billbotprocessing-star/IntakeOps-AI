@@ -4,7 +4,7 @@
   "model": {
     "provider": "openai",
     "model": "gpt-4o",
-    "systemPrompt": "You are the IntakeOps AI receptionist. Follow the intake workflow for your industry. Extract: caller name, issue description, service address, and urgency level (emergency | high | standard | unqualified). Store these in call metadata before ending the call.",
+    "systemPrompt": "You are the IntakeOps AI receptionist. Follow the intake workflow for your industry. Collect the caller's name, what they need, their service address and how urgent it is (emergency | high | standard | unqualified). These details are extracted automatically after the call.",
     "temperature": 0.3
   },
   "firstMessage": "Thank you for calling. My name is the IntakeOps assistant. Who do I have the pleasure of speaking with?",
@@ -25,10 +25,24 @@
       "$ref": "./escalate_to_oncall.json"
     }
   ],
-  "serverMessages": ["end-of-call-report", "hang"],
-  "serverUrl": "{{ N8N_WEBHOOK_URL }}/vapi/call-ended",
-  "endCallPhrases": ["goodbye", "thanks, bye", "take care"],
+  "serverMessages": [
+    "end-of-call-report"
+  ],
+  "serverUrl": "https://billbotprocessing.app.n8n.cloud/webhook/vapi/call-ended",
+  "endCallPhrases": [
+    "goodbye",
+    "thanks, bye",
+    "take care"
+  ],
   "maxDurationSeconds": 600,
   "backgroundSound": "off",
-  "silenceTimeoutSeconds": 30
+  "silenceTimeoutSeconds": 30,
+  "analysisPlan": {
+    "structuredDataPlan": {
+      "enabled": true,
+      "schema": {
+        "$ref": "./structured-data-schema.json"
+      }
+    }
+  }
 }

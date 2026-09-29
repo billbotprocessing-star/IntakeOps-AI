@@ -1,0 +1,103 @@
+{
+  "name": "IntakeOps – Service Area Check",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi/check-service-area",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "69d257bc-3957-5214-915a-62abfd6e6dca",
+      "name": "Vapi Tool Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "78cbfddf-f6a0-5bf9-a816-40c0e523a70a"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // ZIP codes you serve, separated by commas, e.g. \"94103, 94107, 94110\". Leave empty to accept every ZIP.\n    service_zip_codes: \"\",\n  },\n}];"
+      },
+      "id": "9e5d3ba4-f226-5d2c-906b-21c00cf59fc5",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Vapi Tool Call').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\nconst toolCall =\n  (msg.toolCallList ?? msg.toolCalls ?? [])[0] ??\n  msg.toolWithToolCallList?.[0]?.toolCall ?? {};\nlet args = toolCall.function?.arguments ?? toolCall.arguments ?? {};\nif (typeof args === 'string') {\n  try { args = JSON.parse(args); } catch { args = {}; }\n}\nconst toolCallId = toolCall.id ?? '';\n\nconst cfg = $('Config').first().json;\nconst zip = String(args.zip_code ?? '').match(/\\d{5}/)?.[0] ?? '';\nconst served = String(cfg.service_zip_codes ?? '').match(/\\d{5}/g) ?? [];\n\nlet result;\nif (!zip) {\n  result = \"No valid 5-digit ZIP code was given. Ask the caller to repeat their ZIP code.\";\n} else if (served.length === 0 || served.includes(zip)) {\n  result = `IN AREA: ZIP ${zip} is inside the service area. Continue the intake.`;\n} else {\n  result = `OUT OF AREA: ZIP ${zip} is outside the service area. Follow the out-of-area script.`;\n}\nreturn [{ json: { tool_call_id: toolCallId, result } }];"
+      },
+      "id": "6a1b66d6-10b5-53cc-a560-26bd117525dd",
+      "name": "Check ZIP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.tool_call_id, result: $json.result }] }) }}",
+        "options": {}
+      },
+      "id": "53d9da33-ca06-52f8-9c10-be6d1b0bbef8",
+      "name": "Return to Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Vapi Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Check ZIP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check ZIP": {
+      "main": [
+        [
+          {
+            "node": "Return to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

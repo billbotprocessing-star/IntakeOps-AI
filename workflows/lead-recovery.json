@@ -2,106 +2,276 @@
   "name": "IntakeOps – Missed Call Lead Recovery",
   "nodes": [
     {
-      "id": "1",
-      "name": "Vapi Missed Call Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [240, 300],
       "parameters": {
         "httpMethod": "POST",
         "path": "vapi/call-missed",
         "responseMode": "responseNode",
         "options": {}
-      }
+      },
+      "id": "57d0c570-e117-57cc-a1d1-60b63f2e5844",
+      "name": "Missed Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "ff845be0-91ba-5f1a-b3d9-4a863023717f"
     },
     {
-      "id": "2",
-      "name": "Acknowledge Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [460, 160],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{ \"status\": \"queued\" }"
-      }
+        "responseBody": "={{ JSON.stringify({ status: \"queued\" }) }}",
+        "options": {}
+      },
+      "id": "b7ffdcae-1b39-5032-a6f4-3b4b206c773f",
+      "name": "Acknowledge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        300
+      ]
     },
     {
-      "id": "3",
-      "name": "Extract Missed Call Data",
+      "parameters": {
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Your Netlify site + /api (no trailing slash)\n    site_api_url: \"https://intake-ops-ai.netlify.app/api\",\n    // Must match INTAKEOPS_API_KEY in Netlify exactly\n    intakeops_api_key: \"PASTE_YOUR_INTAKEOPS_API_KEY\",\n    // Your Twilio number, e.g. +15551234567\n    twilio_from_number: \"+15550000000\",\n    // Link included in the recovery text\n    booking_url: \"https://calendly.com/your-link\",\n  },\n}];"
+      },
+      "id": "c383e1bd-1972-50e5-ae98-9109895b52f9",
+      "name": "Config",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 440],
-      "parameters": {
-        "jsCode": "const body = $input.first().json;\nconst call = body.call || {};\n\nreturn [{\n  json: {\n    call_id: call.id || '',\n    caller_phone: call.customer?.number || '',\n    missed_at: call.startedAt || new Date().toISOString(),\n    assistant_id: call.assistantId || ''\n  }\n}];"
-      }
+      "position": [
+        440,
+        300
+      ]
     },
     {
-      "id": "4",
+      "parameters": {
+        "jsCode": "const req = $('Missed Call').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\n\n// Accepts the hand-off from Post-Call Intake ({ call_id, caller_phone, missed_at })\n// or a raw Vapi call payload.\nconst phone = String(body.caller_phone || call.customer?.number || msg.customer?.number || '');\nreturn [{\n  json: {\n    call_id: body.call_id || call.id || `missed-${Date.now()}`,\n    caller_phone: phone,\n    missed_at: new Date(body.missed_at || msg.startedAt || call.startedAt || Date.now()).toISOString(),\n    can_text: /^\\+?[0-9]{7,15}$/.test(phone.replace(/[\\s().-]/g, '')),\n  },\n}];"
+      },
+      "id": "6aac9730-b348-5352-a611-1cce747719d9",
+      "name": "Extract Missed Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "8c1e6c72-fd0c-55a5-8bfa-8ef65ac1e472",
+              "leftValue": "={{ $json.can_text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5e770cb9-ccc2-5f4e-b667-8ae8bbbc08fe",
+      "name": "Has Phone Number?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "minutes"
+      },
+      "id": "149b6f03-751d-54b9-8d9e-d0a655e4f4c0",
       "name": "Wait 3 Minutes",
       "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
-      "position": [680, 440],
-      "parameters": {
-        "unit": "minutes",
-        "amount": 3
-      }
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        200
+      ],
+      "webhookId": "4051958d-9515-5076-a1b3-f6bf35cfd825"
     },
     {
-      "id": "5",
-      "name": "SMS – Missed Call Recovery",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
-      "position": [900, 440],
       "parameters": {
         "operation": "send",
-        "from": "={{ $env.TWILIO_FROM_NUMBER }}",
-        "to": "={{ $json.caller_phone }}",
-        "message": "Hi! We just missed your call. We'd love to help — reply here or book a time at {{ $env.BOOKING_URL }}. Reply STOP to opt out."
-      }
+        "from": "={{ $('Config').first().json.twilio_from_number }}",
+        "to": "={{ $('Extract Missed Call').first().json.caller_phone }}",
+        "message": "=Hi! We just missed your call. We'd love to help — reply here or book a time at {{ $('Config').first().json.booking_url }}. Reply STOP to opt out."
+      },
+      "id": "408746c7-642c-5619-b2d3-c54c09f7813c",
+      "name": "SMS – Recovery Text",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        200
+      ],
+      "onError": "continueRegularOutput"
     },
     {
-      "id": "6",
-      "name": "Log Missed Call in CRM",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1120, 440],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.CRM_WEBHOOK_URL }}/missed-calls",
+        "url": "={{ $('Config').first().json.site_api_url }}/missed-calls",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.intakeops_api_key }}"
+            }
           ]
         },
         "sendBody": true,
-        "bodyContentType": "json",
-        "jsonBody": "={{ JSON.stringify({ call_id: $json.call_id, caller_phone: $json.caller_phone, missed_at: $json.missed_at, recovery_sms_sent: true }) }}"
-      }
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ...$('Extract Missed Call').first().json, can_text: undefined, recovery_sms_sent: Boolean($json.sid) }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "cdc2f35c-6075-57f4-bce7-fd9d0e29c25c",
+      "name": "Log Missed Call (texted)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.site_api_url }}/missed-calls",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.intakeops_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ...$('Extract Missed Call').first().json, can_text: undefined, recovery_sms_sent: false }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "91839c04-c377-5671-ac46-52db3328b741",
+      "name": "Log Missed Call (no number)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        420
+      ]
     }
   ],
   "connections": {
-    "Vapi Missed Call Webhook": {
+    "Missed Call": {
       "main": [
-        [{ "node": "Acknowledge Webhook", "type": "main", "index": 0 }],
-        [{ "node": "Extract Missed Call Data", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Acknowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Extract Missed Call Data": {
-      "main": [[{ "node": "Wait 3 Minutes", "type": "main", "index": 0 }]]
+    "Acknowledge": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Extract Missed Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Missed Call": {
+      "main": [
+        [
+          {
+            "node": "Has Phone Number?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Phone Number?": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Missed Call (no number)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Wait 3 Minutes": {
-      "main": [[{ "node": "SMS – Missed Call Recovery", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SMS – Recovery Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "SMS – Missed Call Recovery": {
-      "main": [[{ "node": "Log Missed Call in CRM", "type": "main", "index": 0 }]]
+    "SMS – Recovery Text": {
+      "main": [
+        [
+          {
+            "node": "Log Missed Call (texted)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true
+    "executionOrder": "v1"
   },
-  "tags": ["intakeops", "vapi", "lead-recovery"]
+  "pinData": {}
 }

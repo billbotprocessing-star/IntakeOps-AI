@@ -1,0 +1,168 @@
+{
+  "name": "IntakeOps – Escalate to On-Call",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi/escalate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9bea1b4c-ec98-5117-a84f-e5a980d85a8a",
+      "name": "Vapi Tool Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "a9a95354-c02f-5545-ad8a-bcde90ea0409"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Your Netlify site + /api (no trailing slash)\n    site_api_url: \"https://intake-ops-ai.netlify.app/api\",\n    // Must match INTAKEOPS_API_KEY in Netlify exactly\n    intakeops_api_key: \"PASTE_YOUR_INTAKEOPS_API_KEY\",\n  },\n}];"
+      },
+      "id": "ca2f28fb-eb47-5478-81db-eb7e88f2523b",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Vapi Tool Call').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\nconst toolCall =\n  (msg.toolCallList ?? msg.toolCalls ?? [])[0] ??\n  msg.toolWithToolCallList?.[0]?.toolCall ?? {};\nlet args = toolCall.function?.arguments ?? toolCall.arguments ?? {};\nif (typeof args === 'string') {\n  try { args = JSON.parse(args); } catch { args = {}; }\n}\nconst toolCallId = toolCall.id ?? '';\n\nconst industry = String(args.industry ?? '').toLowerCase();\nreturn [{\n  json: {\n    tool_call_id: toolCallId,\n    escalation: {\n      caller_name: String(args.caller_name || 'Unknown caller'),\n      caller_phone: String(args.caller_phone || call.customer?.number || msg.customer?.number || ''),\n      service_address: String(args.service_address ?? ''),\n      issue_description: String(args.issue_description || 'Emergency reported on a call'),\n      industry: ['plumbing', 'legal', 'med-spa', 'property-management', 'general'].includes(industry) ? industry : 'general',\n    },\n  },\n}];"
+      },
+      "id": "ea98891a-f03b-575f-b595-99f2c18efa97",
+      "name": "Parse Tool Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.site_api_url }}/escalate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.intakeops_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.escalation) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "38440f56-abe9-5372-b08e-10dff0a1b642",
+      "name": "Page On-Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ok = $input.first().json.status === 'escalated';\nconst result = ok\n  ? 'The on-call team has been notified by text and will call the caller back within 15 minutes.'\n  : \"The automatic page didn't go through. Tell the caller their emergency is logged as top priority \" +\n    'and a team member will call them back as soon as possible.';\nreturn [{ json: { tool_call_id: $('Parse Tool Call').first().json.tool_call_id, result } }];"
+      },
+      "id": "5e0d1223-8340-5864-91e4-7e2f4a660db9",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.tool_call_id, result: $json.result }] }) }}",
+        "options": {}
+      },
+      "id": "41c313a4-af45-51b8-b3b5-bcaf90ff0858",
+      "name": "Return to Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Vapi Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Parse Tool Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Page On-Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Page On-Call": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Result": {
+      "main": [
+        [
+          {
+            "node": "Return to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

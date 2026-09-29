@@ -2,135 +2,297 @@
   "name": "IntakeOps – Post-Call Intake",
   "nodes": [
     {
-      "id": "1",
-      "name": "Vapi Call Ended Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [240, 300],
       "parameters": {
         "httpMethod": "POST",
         "path": "vapi/call-ended",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
-      }
+      },
+      "id": "e70a65c4-40f6-535e-8561-5795044beb65",
+      "name": "Vapi Call Ended",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "21fcd8f6-6469-5cc4-a76b-b10eaf0f15bc"
     },
     {
-      "id": "2",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"ok\" }) }}",
+        "options": {}
+      },
+      "id": "6ce869d1-30fc-5443-9123-0bc459cc36b8",
+      "name": "Acknowledge Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Your Netlify site + /api (no trailing slash)\n    site_api_url: \"https://intake-ops-ai.netlify.app/api\",\n    // Must match INTAKEOPS_API_KEY in Netlify exactly\n    intakeops_api_key: \"PASTE_YOUR_INTAKEOPS_API_KEY\",\n    // Your n8n webhook base URL (used to hand missed calls to Lead Recovery)\n    n8n_webhook_base: \"https://billbotprocessing.app.n8n.cloud/webhook\",\n    // Used when the call doesn't say: plumbing, legal, med-spa, property-management or general\n    default_industry: \"general\",\n    // Calls shorter than this with no details collected count as missed calls\n    missed_call_max_seconds: 45,\n  },\n}];"
+      },
+      "id": "bf1103a7-5bf0-5bdc-a185-d940cf452f03",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Vapi Call Ended').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\n\n// Vapi also sends status updates etc. to the same URL — only handle the final report.\nif (msg.type && msg.type !== 'end-of-call-report') return [];\n\nconst cfg = $('Config').first().json;\nconst artifact = msg.artifact ?? {};\nconst analysis = msg.analysis ?? call.analysis ?? {};\nconst data = analysis.structuredData ?? {};\nconst meta = call.metadata ?? {};\nconst pick = (...values) => values.find((v) => typeof v === 'string' && v.trim()) ?? '';\n\nconst startedAt = msg.startedAt ?? call.startedAt;\nconst endedAt = msg.endedAt ?? call.endedAt;\nlet duration = Math.round(Number(msg.durationSeconds ?? call.durationSeconds ?? 0));\nif (!duration && startedAt && endedAt) {\n  duration = Math.round((new Date(endedAt) - new Date(startedAt)) / 1000);\n}\n\nconst urgencyRaw = pick(data.urgency_level, meta.urgency_level).toLowerCase();\nconst urgency = ['emergency', 'high', 'standard', 'unqualified'].includes(urgencyRaw) ? urgencyRaw : 'standard';\nconst industryRaw = pick(data.industry, meta.industry, cfg.default_industry).toLowerCase();\nconst industry = ['plumbing', 'legal', 'med-spa', 'property-management', 'general'].includes(industryRaw) ? industryRaw : 'general';\n\nconst lead = {\n  call_id: pick(call.id, msg.callId) || `vapi-${Date.now()}`,\n  caller_phone: pick(call.customer?.number, msg.customer?.number, data.caller_phone),\n  caller_name: pick(data.caller_name, meta.caller_name) || 'Unknown',\n  issue_description: pick(data.issue_description, meta.issue_description, analysis.summary),\n  urgency_level: urgency,\n  service_address: pick(data.service_address, meta.service_address),\n  industry,\n  call_duration_seconds: Math.max(0, duration || 0),\n  transcript: pick(artifact.transcript, msg.transcript, call.transcript),\n  recording_url: pick(\n    artifact.recordingUrl, artifact.recording?.mono?.combinedUrl, artifact.recording?.stereoUrl,\n    msg.recordingUrl, call.recordingUrl,\n  ),\n  ended_reason: pick(msg.endedReason, call.endedReason),\n  timestamp: new Date(startedAt || Date.now()).toISOString(),\n};\n\n// No details collected and a very short call: treat it as a missed call.\nconst collectedDetails = Boolean(pick(data.caller_name, data.issue_description, meta.caller_name));\nconst isMissed = !collectedDetails && lead.call_duration_seconds < Number(cfg.missed_call_max_seconds);\n\nconst TICKETS = {\n  emergency: { priority: 'CRITICAL', status: 'escalated' },\n  high: { priority: 'HIGH', status: 'pending_callback' },\n  standard: { priority: 'NORMAL', status: 'queued' },\n};\nconst ticket = TICKETS[urgency] ? { ...lead, ...TICKETS[urgency] } : null;\n\nreturn [{\n  json: {\n    is_missed: isMissed,\n    needs_ticket: Boolean(ticket),\n    lead,\n    ticket,\n    missed: { call_id: lead.call_id, caller_phone: lead.caller_phone, missed_at: lead.timestamp },\n  },\n}];"
+      },
+      "id": "922327c0-2984-5bca-8bfb-8b7499595c8a",
       "name": "Extract Call Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300],
-      "parameters": {
-        "jsCode": "const body = $input.first().json;\nconst call = body.call || {};\nconst metadata = call.metadata || {};\n\nconst extracted = {\n  call_id: call.id || '',\n  caller_phone: call.customer?.number || '',\n  caller_name: metadata.caller_name || 'Unknown',\n  issue_description: metadata.issue_description || '',\n  urgency_level: metadata.urgency_level || 'standard',\n  service_address: metadata.service_address || '',\n  industry: metadata.industry || 'general',\n  call_duration_seconds: (call.endedAt && call.startedAt)\n    ? Math.round((new Date(call.endedAt) - new Date(call.startedAt)) / 1000)\n    : 0,\n  transcript: call.transcript || '',\n  recording_url: call.recordingUrl || '',\n  ended_reason: call.endedReason || '',\n  timestamp: new Date().toISOString()\n};\n\nreturn [{ json: extracted }];"
-      }
+      "position": [
+        660,
+        300
+      ]
     },
     {
-      "id": "3",
-      "name": "Push to CRM Backend",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [680, 300],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.CRM_WEBHOOK_URL }}/leads",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
-          ]
-        },
-        "sendBody": true,
-        "bodyContentType": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
-        "options": { "timeout": 10000 }
-      }
-    },
-    {
-      "id": "4",
-      "name": "Is Emergency?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [900, 300],
       "parameters": {
         "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
-              "id": "cond1",
-              "leftValue": "={{ $('Extract Call Data').item.json.urgency_level }}",
-              "rightValue": "emergency",
-              "operator": { "type": "string", "operation": "equals" }
+              "id": "25a5cf46-df56-5eab-8460-3fa3d641fb69",
+              "leftValue": "={{ $json.is_missed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b69e5be9-00aa-5504-9eb2-5a7accc68da3",
+      "name": "Missed Call?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.n8n_webhook_base }}/vapi/call-missed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Extract Call Data').first().json.missed) }}",
+        "options": {
+          "timeout": 10000
         }
-      }
+      },
+      "id": "cc326f72-7920-5270-bab0-d1dc8ccb7289",
+      "name": "Hand Off to Lead Recovery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        160
+      ]
     },
     {
-      "id": "5",
-      "name": "SMS – Emergency On-Call Alert",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
-      "position": [1120, 160],
       "parameters": {
-        "operation": "send",
-        "from": "={{ $env.TWILIO_FROM_NUMBER }}",
-        "to": "={{ $env.ON_CALL_PHONE }}",
-        "message": "🚨 EMERGENCY INTAKE — {{ $('Extract Call Data').item.json.caller_name }} at {{ $('Extract Call Data').item.json.service_address }}. Issue: {{ $('Extract Call Data').item.json.issue_description }}. Call back: {{ $('Extract Call Data').item.json.caller_phone }}"
-      }
+        "method": "POST",
+        "url": "={{ $('Config').first().json.site_api_url }}/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.intakeops_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Extract Call Data').first().json.lead) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "35ec3cb4-0c80-5c6c-a293-a9b6b749094a",
+      "name": "Save Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        440
+      ]
     },
     {
-      "id": "6",
-      "name": "SMS – Caller Confirmation",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
-      "position": [1120, 440],
       "parameters": {
-        "operation": "send",
-        "from": "={{ $env.TWILIO_FROM_NUMBER }}",
-        "to": "={{ $('Extract Call Data').item.json.caller_phone }}",
-        "message": "Hi {{ $('Extract Call Data').item.json.caller_name }}, your intake has been received. Our team will follow up within 1 business hour. Reply STOP to opt out."
-      }
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "2692e6d0-bfd1-5cd8-99ab-e0bb0877da24",
+              "leftValue": "={{ $('Extract Call Data').first().json.needs_ticket }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cb87304f-d957-549b-a3c2-6946162f4c25",
+      "name": "Needs Ticket?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        440
+      ]
     },
     {
-      "id": "7",
-      "name": "Respond 200 OK",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1340, 300],
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "{ \"status\": \"ok\" }"
-      }
+        "method": "POST",
+        "url": "={{ $('Config').first().json.site_api_url }}/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.intakeops_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Extract Call Data').first().json.ticket) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "a62793b6-9dcb-570b-b72c-8ec163e3f447",
+      "name": "Create Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        380
+      ]
     }
   ],
   "connections": {
-    "Vapi Call Ended Webhook": {
-      "main": [[{ "node": "Extract Call Data", "type": "main", "index": 0 }]]
-    },
-    "Extract Call Data": {
-      "main": [[{ "node": "Push to CRM Backend", "type": "main", "index": 0 }]]
-    },
-    "Push to CRM Backend": {
-      "main": [[{ "node": "Is Emergency?", "type": "main", "index": 0 }]]
-    },
-    "Is Emergency?": {
+    "Vapi Call Ended": {
       "main": [
-        [{ "node": "SMS – Emergency On-Call Alert", "type": "main", "index": 0 }],
-        [{ "node": "SMS – Caller Confirmation", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Acknowledge Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "SMS – Emergency On-Call Alert": {
-      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    "Acknowledge Vapi": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "SMS – Caller Confirmation": {
-      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Extract Call Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Call Data": {
+      "main": [
+        [
+          {
+            "node": "Missed Call?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Missed Call?": {
+      "main": [
+        [
+          {
+            "node": "Hand Off to Lead Recovery",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Lead": {
+      "main": [
+        [
+          {
+            "node": "Needs Ticket?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Ticket?": {
+      "main": [
+        [
+          {
+            "node": "Create Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true
+    "executionOrder": "v1"
   },
-  "tags": ["intakeops", "vapi", "post-call"]
+  "pinData": {}
 }

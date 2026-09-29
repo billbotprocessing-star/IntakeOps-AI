@@ -2,95 +2,185 @@
   "name": "IntakeOps – Calendar Sync & Availability",
   "nodes": [
     {
-      "id": "1",
-      "name": "Vapi Tool Call Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [240, 300],
       "parameters": {
         "httpMethod": "POST",
         "path": "vapi/check-calendar",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
-      }
+      },
+      "id": "7dedad80-e607-52ab-ba87-b8e74daae8cc",
+      "name": "Vapi Tool Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "ed6f8e6d-ee2a-5af7-a88d-5045e455d9eb"
     },
     {
-      "id": "2",
-      "name": "Parse Tool Call Args",
+      "parameters": {
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Base URL of your calendar's availability API\n    calendar_api_url: \"https://acuityscheduling.com/api/v1\",\n    // Sent as: Authorization: Bearer <key>\n    calendar_api_key: \"PASTE_YOUR_CALENDAR_API_KEY\",\n  },\n}];"
+      },
+      "id": "9732c987-25e0-5b23-94bb-63103cd6bc9b",
+      "name": "Config",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300],
-      "parameters": {
-        "jsCode": "const body = $input.first().json;\n// Vapi sends tool call arguments under message.toolCallList[0].function.arguments\nconst args = body.message?.toolCallList?.[0]?.function?.arguments || {};\nconst toolCallId = body.message?.toolCallList?.[0]?.id || '';\n\nconst requested_date = args.requested_date || null; // ISO date string or null for 'next available'\nconst service_type = args.service_type || 'general';\nconst duration_minutes = args.duration_minutes || 60;\n\nreturn [{ json: { tool_call_id: toolCallId, requested_date, service_type, duration_minutes } }];"
-      }
+      "position": [
+        220,
+        300
+      ]
     },
     {
-      "id": "3",
-      "name": "Fetch Available Slots",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [680, 300],
+      "parameters": {
+        "jsCode": "const req = $('Vapi Tool Call').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\nconst toolCall =\n  (msg.toolCallList ?? msg.toolCalls ?? [])[0] ??\n  msg.toolWithToolCallList?.[0]?.toolCall ?? {};\nlet args = toolCall.function?.arguments ?? toolCall.arguments ?? {};\nif (typeof args === 'string') {\n  try { args = JSON.parse(args); } catch { args = {}; }\n}\nconst toolCallId = toolCall.id ?? '';\n\nreturn [{\n  json: {\n    tool_call_id: toolCallId,\n    requested_date: args.requested_date || '',\n    service_type: args.service_type || 'general',\n    duration_minutes: Number(args.duration_minutes) || 60,\n  },\n}];"
+      },
+      "id": "46b573c7-12cf-5999-b5e8-8b688fa2687e",
+      "name": "Parse Tool Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.CALENDAR_API_URL }}/availability",
+        "url": "={{ $('Config').first().json.calendar_api_url }}/availability",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer {{ $env.CALENDAR_API_KEY }}" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.calendar_api_key }}"
+            }
           ]
         },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "date", "value": "={{ $json.requested_date }}" },
-            { "name": "service", "value": "={{ $json.service_type }}" },
-            { "name": "duration", "value": "={{ $json.duration_minutes }}" },
-            { "name": "limit", "value": "2" }
+            {
+              "name": "date",
+              "value": "={{ $json.requested_date }}"
+            },
+            {
+              "name": "service",
+              "value": "={{ $json.service_type }}"
+            },
+            {
+              "name": "duration",
+              "value": "={{ $json.duration_minutes }}"
+            },
+            {
+              "name": "limit",
+              "value": "2"
+            }
           ]
         },
-        "options": { "timeout": 8000 }
-      }
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "5c384b7e-2fbb-5f16-8ef0-b26db86b295f",
+      "name": "Fetch Available Slots",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "onError": "continueRegularOutput"
     },
     {
-      "id": "4",
-      "name": "Format Slots for Vapi",
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst slots = Array.isArray(res.slots) ? res.slots : [];\nlet result;\nif (slots.length === 0) {\n  result = \"I couldn't find an opening in that window. Our next opening is usually within 2 business days — \" +\n    \"let the caller know the team will call to confirm a time.\";\n} else {\n  result = slots.map((s, i) => {\n    const d = new Date(s.start);\n    const day = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });\n    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });\n    return `Option ${i + 1}: ${day} at ${time}`;\n  }).join(', or ');\n}\nreturn [{ json: { tool_call_id: $('Parse Tool Call').first().json.tool_call_id, result } }];"
+      },
+      "id": "f53c82fd-dc68-5b22-82ec-cd9bce86a285",
+      "name": "Format Slots",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 300],
-      "parameters": {
-        "jsCode": "const slots = $input.first().json.slots || [];\nconst toolCallId = $('Parse Tool Call Args').item.json.tool_call_id;\n\nlet slotText = '';\nif (slots.length === 0) {\n  slotText = 'No availability found in the requested window. Our next opening is typically within 2 business days.';\n} else {\n  const formatted = slots.map((s, i) => {\n    const d = new Date(s.start);\n    return `Option ${i + 1}: ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;\n  });\n  slotText = formatted.join(', or ');\n}\n\n// Vapi expects results in this shape\nreturn [{\n  json: {\n    results: [\n      {\n        toolCallId: toolCallId,\n        result: slotText\n      }\n    ]\n  }\n}];"
-      }
+      "position": [
+        880,
+        300
+      ]
     },
     {
-      "id": "5",
-      "name": "Return Slots to Vapi",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1120, 300],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}"
-      }
+        "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.tool_call_id, result: $json.result }] }) }}",
+        "options": {}
+      },
+      "id": "6727b434-79be-554d-a27b-07b62172b465",
+      "name": "Return to Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        300
+      ]
     }
   ],
   "connections": {
-    "Vapi Tool Call Webhook": {
-      "main": [[{ "node": "Parse Tool Call Args", "type": "main", "index": 0 }]]
+    "Vapi Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Parse Tool Call Args": {
-      "main": [[{ "node": "Fetch Available Slots", "type": "main", "index": 0 }]]
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Parse Tool Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Fetch Available Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Available Slots": {
-      "main": [[{ "node": "Format Slots for Vapi", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Format Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Format Slots for Vapi": {
-      "main": [[{ "node": "Return Slots to Vapi", "type": "main", "index": 0 }]]
+    "Format Slots": {
+      "main": [
+        [
+          {
+            "node": "Return to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true
+    "executionOrder": "v1"
   },
-  "tags": ["intakeops", "vapi", "calendar"]
+  "pinData": {}
 }

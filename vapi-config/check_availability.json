@@ -15,7 +15,7 @@
     }
   },
   "server": {
-    "url": "{{ N8N_WEBHOOK_URL }}/vapi/check-service-area",
+    "url": "https://billbotprocessing.app.n8n.cloud/webhook/vapi/check-service-area",
     "timeoutSeconds": 8
   }
 }

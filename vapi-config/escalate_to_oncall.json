@@ -32,7 +32,7 @@
     }
   },
   "server": {
-    "url": "{{ N8N_WEBHOOK_URL }}/vapi/escalate",
+    "url": "https://billbotprocessing.app.n8n.cloud/webhook/vapi/escalate",
     "timeoutSeconds": 8
   }
 }

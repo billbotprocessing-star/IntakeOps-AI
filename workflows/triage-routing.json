@@ -2,213 +2,330 @@
   "name": "IntakeOps – Triage Routing",
   "nodes": [
     {
-      "id": "1",
-      "name": "Intake Triage Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [240, 300],
       "parameters": {
         "httpMethod": "POST",
         "path": "intakeops/triage",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
-      }
+      },
+      "id": "2ca3cfbd-2ee8-5be8-a1ad-ae8e4440e1dd",
+      "name": "Triage Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "2b526818-5fab-56c8-9c3a-8ca3b7e56313"
     },
     {
-      "id": "2",
-      "name": "Route by Urgency",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [460, 300],
       "parameters": {
-        "mode": "rules",
-        "rules": {
-          "values": [
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"routed\" }) }}",
+        "options": {}
+      },
+      "id": "fcf105a1-f608-53d7-9fb2-550708f0cfa2",
+      "name": "Acknowledge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Your Netlify site + /api (no trailing slash)\n    site_api_url: \"https://intake-ops-ai.netlify.app/api\",\n    // Must match INTAKEOPS_API_KEY in Netlify exactly\n    intakeops_api_key: \"PASTE_YOUR_INTAKEOPS_API_KEY\",\n    // Your Twilio number, e.g. +15551234567\n    twilio_from_number: \"+15550000000\",\n    // Who gets paged for emergencies\n    on_call_phone: \"+15550000000\",\n  },\n}];"
+      },
+      "id": "edd3efc9-0a9f-5696-96bb-9a15abb79b63",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Triage Request').first().json;\nconst b = req.body ?? req;\nconst urgencyRaw = String(b.urgency_level ?? '').toLowerCase();\nconst urgency = ['emergency', 'high', 'standard', 'unqualified'].includes(urgencyRaw) ? urgencyRaw : 'unqualified';\nconst industryRaw = String(b.industry ?? '').toLowerCase();\nconst base = {\n  call_id: String(b.call_id || `triage-${Date.now()}`),\n  caller_phone: String(b.caller_phone ?? ''),\n  caller_name: String(b.caller_name || 'Unknown'),\n  issue_description: String(b.issue_description ?? ''),\n  urgency_level: urgency,\n  service_address: String(b.service_address ?? ''),\n  industry: ['plumbing', 'legal', 'med-spa', 'property-management', 'general'].includes(industryRaw) ? industryRaw : 'general',\n  timestamp: new Date().toISOString(),\n};\nconst TICKETS = {\n  emergency: { priority: 'CRITICAL', status: 'escalated' },\n  high: { priority: 'HIGH', status: 'pending_callback' },\n  standard: { priority: 'NORMAL', status: 'queued' },\n};\nreturn [{\n  json: {\n    ...base,\n    is_unqualified: urgency === 'unqualified',\n    is_emergency: urgency === 'emergency',\n    ticket: TICKETS[urgency] ? { ...base, ...TICKETS[urgency] } : null,\n  },\n}];"
+      },
+      "id": "35596043-56ad-5cb1-aea3-4e5a824f6165",
+      "name": "Normalize Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
             {
-              "conditions": {
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.urgency_level }}",
-                    "rightValue": "emergency",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "outputKey": "emergency"
-            },
+              "id": "d765dbb7-69a0-5989-9cef-5418be6fe92b",
+              "leftValue": "={{ $json.is_unqualified }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4cad940d-056d-5ea5-a92d-c03b4cc0222d",
+      "name": "Unqualified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.site_api_url }}/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "conditions": {
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.urgency_level }}",
-                    "rightValue": "high",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "outputKey": "high"
-            },
-            {
-              "conditions": {
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.urgency_level }}",
-                    "rightValue": "standard",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "outputKey": "standard"
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.intakeops_api_key }}"
             }
           ]
         },
-        "fallbackOutput": "unqualified"
-      }
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ...$('Normalize Request').first().json, ticket: undefined, is_unqualified: undefined, is_emergency: undefined, status: 'unqualified' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "d99ebd9d-d645-522b-b1f6-6ba25f768e67",
+      "name": "Log Unqualified Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        160
+      ]
     },
     {
-      "id": "3",
-      "name": "SMS – Page On-Call Tech",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
-      "position": [720, 60],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "d4a23192-a67f-5362-ab11-ce217ce8d834",
+              "leftValue": "={{ $('Normalize Request').first().json.is_emergency }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fa6c8190-bd6e-54b4-b5dc-49847af7ac93",
+      "name": "Emergency?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        440
+      ]
+    },
+    {
       "parameters": {
         "operation": "send",
-        "from": "={{ $env.TWILIO_FROM_NUMBER }}",
-        "to": "={{ $env.ON_CALL_PHONE }}",
-        "message": "🚨 EMERGENCY — {{ $json.caller_name }} ({{ $json.caller_phone }}): {{ $json.issue_description }} @ {{ $json.service_address }}. Respond immediately."
-      }
-    },
-    {
-      "id": "4",
-      "name": "CRM – Create Emergency Ticket",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [960, 60],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.CRM_WEBHOOK_URL }}/tickets",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
-          ]
-        },
-        "sendBody": true,
-        "bodyContentType": "json",
-        "jsonBody": "={{ JSON.stringify({ ...($json), priority: 'CRITICAL', status: 'escalated' }) }}"
-      }
-    },
-    {
-      "id": "5",
-      "name": "CRM – High Priority Ticket",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [720, 220],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.CRM_WEBHOOK_URL }}/tickets",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
-          ]
-        },
-        "sendBody": true,
-        "bodyContentType": "json",
-        "jsonBody": "={{ JSON.stringify({ ...($json), priority: 'HIGH', status: 'pending_callback' }) }}"
-      }
-    },
-    {
-      "id": "6",
-      "name": "CRM – Standard Ticket",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [720, 380],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.CRM_WEBHOOK_URL }}/tickets",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
-          ]
-        },
-        "sendBody": true,
-        "bodyContentType": "json",
-        "jsonBody": "={{ JSON.stringify({ ...($json), priority: 'NORMAL', status: 'queued' }) }}"
-      }
-    },
-    {
-      "id": "7",
-      "name": "CRM – Log Unqualified",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [720, 540],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.CRM_WEBHOOK_URL }}/leads",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "X-API-Key", "value": "={{ $env.INTAKEOPS_API_KEY }}" }
-          ]
-        },
-        "sendBody": true,
-        "bodyContentType": "json",
-        "jsonBody": "={{ JSON.stringify({ ...($json), status: 'unqualified', follow_up: false }) }}"
-      }
-    },
-    {
-      "id": "8",
-      "name": "Respond 200 OK",
-      "type": "n8n-nodes-base.respondToWebhook",
+        "from": "={{ $('Config').first().json.twilio_from_number }}",
+        "to": "={{ $('Config').first().json.on_call_phone }}",
+        "message": "=🚨 EMERGENCY — {{ $('Normalize Request').first().json.caller_name }} ({{ $('Normalize Request').first().json.caller_phone }}): {{ $('Normalize Request').first().json.issue_description }} @ {{ $('Normalize Request').first().json.service_address }}. Respond immediately."
+      },
+      "id": "4f0fd4dd-e491-5bd6-9faa-a20780e56b8b",
+      "name": "SMS – Page On-Call",
+      "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [1200, 300],
+      "position": [
+        1320,
+        360
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "{ \"status\": \"routed\" }"
-      }
+        "method": "POST",
+        "url": "={{ $('Config').first().json.site_api_url }}/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.intakeops_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Normalize Request').first().json.ticket) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "4b90e14f-5f44-5d71-a167-d7f7aae57b09",
+      "name": "Create Emergency Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.site_api_url }}/tickets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.intakeops_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Normalize Request').first().json.ticket) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "b8129d34-7661-5e62-a778-145049932380",
+      "name": "Create Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        540
+      ]
     }
   ],
   "connections": {
-    "Intake Triage Webhook": {
-      "main": [[{ "node": "Route by Urgency", "type": "main", "index": 0 }]]
-    },
-    "Route by Urgency": {
+    "Triage Request": {
       "main": [
-        [{ "node": "SMS – Page On-Call Tech", "type": "main", "index": 0 }],
-        [{ "node": "CRM – High Priority Ticket", "type": "main", "index": 0 }],
-        [{ "node": "CRM – Standard Ticket", "type": "main", "index": 0 }],
-        [{ "node": "CRM – Log Unqualified", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Acknowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "SMS – Page On-Call Tech": {
-      "main": [[{ "node": "CRM – Create Emergency Ticket", "type": "main", "index": 0 }]]
+    "Acknowledge": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "CRM – Create Emergency Ticket": {
-      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Normalize Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "CRM – High Priority Ticket": {
-      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    "Normalize Request": {
+      "main": [
+        [
+          {
+            "node": "Unqualified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "CRM – Standard Ticket": {
-      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    "Unqualified?": {
+      "main": [
+        [
+          {
+            "node": "Log Unqualified Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Emergency?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "CRM – Log Unqualified": {
-      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    "Emergency?": {
+      "main": [
+        [
+          {
+            "node": "SMS – Page On-Call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMS – Page On-Call": {
+      "main": [
+        [
+          {
+            "node": "Create Emergency Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true
+    "executionOrder": "v1"
   },
-  "tags": ["intakeops", "triage", "routing"]
+  "pinData": {}
 }

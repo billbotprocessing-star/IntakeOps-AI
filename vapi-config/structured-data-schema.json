@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "properties": {
+    "caller_name": {
+      "type": "string",
+      "description": "The caller's full name."
+    },
+    "caller_phone": {
+      "type": "string",
+      "description": "Callback number the caller gave, if different from the number they called from."
+    },
+    "issue_description": {
+      "type": "string",
+      "description": "One or two sentences describing what the caller needs."
+    },
+    "service_address": {
+      "type": "string",
+      "description": "Street address including ZIP code, if given."
+    },
+    "urgency_level": {
+      "type": "string",
+      "enum": [
+        "emergency",
+        "high",
+        "standard",
+        "unqualified"
+      ],
+      "description": "emergency = needs help now; high = today; standard = can be scheduled; unqualified = spam, wrong number or out of area."
+    },
+    "industry": {
+      "type": "string",
+      "enum": [
+        "plumbing",
+        "legal",
+        "med-spa",
+        "property-management",
+        "general"
+      ],
+      "description": "Which business line the call is for."
+    }
+  },
+  "required": [
+    "caller_name",
+    "issue_description",
+    "urgency_level"
+  ]
+}

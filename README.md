@@ -171,9 +171,9 @@ Supabase so it shows up in the dashboard.
 | Method & path | Called by | Does |
 |---|---|---|
 | `POST /api/leads` | post-call-intake, triage-routing | Stores the lead, creates a HubSpot contact + deal, texts the caller (or pages on-call for emergencies) |
-| `POST /api/tickets` | triage-routing | Stores a prioritized ticket, creates a HubSpot contact + deal |
+| `POST /api/tickets` | post-call-intake, triage-routing | Stores a prioritized ticket; reuses the lead's HubSpot contact + deal for the same call, otherwise creates them |
 | `POST /api/missed-calls` | lead-recovery | Stores the missed call, adds a HubSpot note |
-| `POST /api/escalate` | Vapi `escalateToOnCall` via n8n | Texts `ON_CALL_PHONE`; returns 502 if the text couldn't be sent |
+| `POST /api/escalate` | escalate-to-oncall (Vapi `escalateToOnCall`) | Texts `ON_CALL_PHONE`; returns 502 if the text couldn't be sent |
 | `POST /api/demo-request` | landing page form | Forwards to the n8n `demo-request` webhook (no API key; input is validated) |
 | `GET /api/health` | uptime checks | `{"status":"ok"}` |
 
@@ -194,9 +194,9 @@ Supabase so it shows up in the dashboard.
    under *INTAKEOPS API*, *SUPABASE*, *TWILIO* and *CRM (HUBSPOT)*.
 3. Deploy, then open `/app/integrations` to confirm each service shows **Connected**.
 
-### 3. n8n
-Set `CRM_WEBHOOK_URL` to `https://<your-site>.netlify.app/api` and make sure
-`INTAKEOPS_API_KEY` matches the Netlify value. No workflow edits are needed.
+### 3. n8n and Vapi
+Import the six workflows and fill in each one's **Config** node, then point
+Vapi at them — step by step in [`workflows/README.md`](workflows/README.md).
 Once calls show up in the dashboard, the old Railway backend can be shut down.
 
 ### 4. GitHub Pages

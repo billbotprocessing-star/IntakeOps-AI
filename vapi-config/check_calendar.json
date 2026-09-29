@@ -24,7 +24,7 @@
     }
   },
   "server": {
-    "url": "{{ N8N_WEBHOOK_URL }}/vapi/check-calendar",
+    "url": "https://billbotprocessing.app.n8n.cloud/webhook/vapi/check-calendar",
     "timeoutSeconds": 10
   }
 }

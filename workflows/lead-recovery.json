@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Your Netlify site + /api (no trailing slash)\n    site_api_url: \"https://intake-ops-ai.netlify.app/api\",\n    // Must match INTAKEOPS_API_KEY in Netlify exactly\n    intakeops_api_key: \"PASTE_YOUR_INTAKEOPS_API_KEY\",\n    // Your Twilio number, e.g. +15551234567\n    twilio_from_number: \"+15550000000\",\n    // Link included in the recovery text\n    booking_url: \"https://calendly.com/your-link\",\n  },\n}];"
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Your Netlify site + /api (no trailing slash)\n    site_api_url: \"https://intake-ops-ai.netlify.app/api\",\n    // Must match INTAKEOPS_API_KEY in Netlify exactly\n    intakeops_api_key: \"PASTE_YOUR_INTAKEOPS_API_KEY\",\n    // Your Twilio number, e.g. +15551234567\n    twilio_from_number: \"+15550000000\",\n    // Link included in the recovery text\n    booking_url: \"https://cal.com/danielle-traynor-hc7i3n/30min\",\n  },\n}];"
       },
       "id": "c383e1bd-1972-50e5-ae98-9109895b52f9",
       "name": "Config",

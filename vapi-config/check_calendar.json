@@ -2,7 +2,7 @@
   "type": "function",
   "function": {
     "name": "checkCalendar",
-    "description": "Returns the next 2 open times on the IntakeOps Google Calendar. Use it when the caller wants to book a strategy call.",
+    "description": "Returns the next 2 open times on the IntakeOps Cal.com calendar. Use it when the caller wants to book a strategy call.",
     "parameters": {
       "type": "object",
       "properties": {

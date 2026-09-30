@@ -2,13 +2,13 @@
   "type": "function",
   "function": {
     "name": "checkCalendar",
-    "description": "Returns the next 2 available appointment slots for the requested service type. Use this for standard (non-emergency) booking requests.",
+    "description": "Returns the next 2 open times on the IntakeOps Cal.com calendar. Use it when the caller wants to book a strategy call.",
     "parameters": {
       "type": "object",
       "properties": {
         "service_type": {
           "type": "string",
-          "description": "The type of service being booked (e.g. 'plumbing-routine', 'legal-consultation', 'med-spa-botox', 'property-maintenance')."
+          "description": "What is being booked. For IntakeOps sales calls always use 'intakeops-strategy-call'."
         },
         "requested_date": {
           "type": "string",
@@ -16,11 +16,12 @@
         },
         "duration_minutes": {
           "type": "integer",
-          "description": "Estimated appointment duration in minutes. Defaults to 60 if not specified.",
-          "default": 60
+          "description": "Length of the call in minutes. Leave out to use the default (30)."
         }
       },
-      "required": ["service_type"]
+      "required": [
+        "service_type"
+      ]
     }
   },
   "server": {

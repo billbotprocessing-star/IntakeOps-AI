@@ -1,5 +1,5 @@
 {
-  "name": "IntakeOps – Calendar Sync & Availability",
+  "name": "IntakeOps – Calendar Availability (Cal.com)",
   "nodes": [
     {
       "parameters": {
@@ -8,7 +8,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "7dedad80-e607-52ab-ba87-b8e74daae8cc",
+      "id": "b99c541a-d2ab-53c0-8aae-36f720c8b923",
       "name": "Vapi Tool Call",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -16,13 +16,13 @@
         0,
         300
       ],
-      "webhookId": "ed6f8e6d-ee2a-5af7-a88d-5045e455d9eb"
+      "webhookId": "711bdcf0-0027-5c49-b164-2311d6935b1a"
     },
     {
       "parameters": {
-        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Base URL of your calendar's availability API\n    calendar_api_url: \"https://acuityscheduling.com/api/v1\",\n    // Sent as: Authorization: Bearer <key>\n    calendar_api_key: \"PASTE_YOUR_CALENDAR_API_KEY\",\n  },\n}];"
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Your Cal.com username (from cal.com/<username>/<event>)\n    cal_username: \"danielle-traynor-hc7i3n\",\n    // The event type to book (the last part of your booking link)\n    event_type_slug: \"30min\",\n    // Your time zone, e.g. America/New_York, America/Chicago, America/Los_Angeles\n    timezone: \"America/New_York\",\n    // Optional. Leave empty for a public booking page; otherwise paste a cal_live_... key\n    cal_api_key: \"\",\n    // How many days ahead to look for openings\n    days_to_search: 14,\n  },\n}];"
       },
-      "id": "9732c987-25e0-5b23-94bb-63103cd6bc9b",
+      "id": "08fb77a9-3ff0-59d0-922c-fe5e364b20ca",
       "name": "Config",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -33,9 +33,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const req = $('Vapi Tool Call').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\nconst toolCall =\n  (msg.toolCallList ?? msg.toolCalls ?? [])[0] ??\n  msg.toolWithToolCallList?.[0]?.toolCall ?? {};\nlet args = toolCall.function?.arguments ?? toolCall.arguments ?? {};\nif (typeof args === 'string') {\n  try { args = JSON.parse(args); } catch { args = {}; }\n}\nconst toolCallId = toolCall.id ?? '';\n\nreturn [{\n  json: {\n    tool_call_id: toolCallId,\n    requested_date: args.requested_date || '',\n    service_type: args.service_type || 'general',\n    duration_minutes: Number(args.duration_minutes) || 60,\n  },\n}];"
+        "jsCode": "const req = $('Vapi Tool Call').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\nconst toolCall =\n  (msg.toolCallList ?? msg.toolCalls ?? [])[0] ??\n  msg.toolWithToolCallList?.[0]?.toolCall ?? {};\n// Function tools send Vapi's tool-call envelope; API Request tools POST the\n// parameters as the whole body.\nlet args = toolCall.function?.arguments ?? toolCall.arguments ?? (body.message ? {} : body);\nif (typeof args === 'string') {\n  try { args = JSON.parse(args); } catch { args = {}; }\n}\nconst toolCallId = toolCall.id ?? '';\n\nconst cfg = $('Config').first().json;\nlet from = DateTime.now().setZone(cfg.timezone).startOf('day');\nif (args.requested_date) {\n  const d = DateTime.fromISO(String(args.requested_date), { zone: cfg.timezone });\n  if (d.isValid && d >= from) from = d.startOf('day');\n}\nconst to = from.plus({ days: Number(cfg.days_to_search) || 14 }).endOf('day');\nreturn [{\n  json: {\n    tool_call_id: toolCallId,\n    start: from.toUTC().toISO(),\n    end: to.toUTC().toISO(),\n  },\n}];"
       },
-      "id": "46b573c7-12cf-5999-b5e8-8b688fa2687e",
+      "id": "58638ce4-1ebb-5280-bc4b-e37c5031f65b",
       "name": "Parse Tool Call",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -47,43 +47,41 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $('Config').first().json.calendar_api_url }}/availability",
+        "url": "https://api.cal.com/v2/slots",
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $('Config').first().json.calendar_api_key }}"
-            }
-          ]
+        "specifyHeaders": "json",
+        "jsonHeaders": "={{ JSON.stringify(Object.assign({ 'cal-api-version': '2024-09-04' }, $('Config').first().json.cal_api_key ? { Authorization: 'Bearer ' + $('Config').first().json.cal_api_key } : {})) }}",
+        "options": {
+          "timeout": 10000
         },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
-              "name": "date",
-              "value": "={{ $json.requested_date }}"
+              "name": "eventTypeSlug",
+              "value": "={{ $('Config').first().json.event_type_slug }}"
             },
             {
-              "name": "service",
-              "value": "={{ $json.service_type }}"
+              "name": "username",
+              "value": "={{ $('Config').first().json.cal_username }}"
             },
             {
-              "name": "duration",
-              "value": "={{ $json.duration_minutes }}"
+              "name": "start",
+              "value": "={{ $json.start }}"
             },
             {
-              "name": "limit",
-              "value": "2"
+              "name": "end",
+              "value": "={{ $json.end }}"
+            },
+            {
+              "name": "timeZone",
+              "value": "={{ $('Config').first().json.timezone }}"
             }
           ]
-        },
-        "options": {
-          "timeout": 8000
         }
       },
-      "id": "5c384b7e-2fbb-5f16-8ef0-b26db86b295f",
-      "name": "Fetch Available Slots",
+      "id": "9cbcf6f4-341d-5c73-ae1b-3479f74f8854",
+      "name": "Cal.com – Available Slots",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -94,10 +92,10 @@
     },
     {
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nconst slots = Array.isArray(res.slots) ? res.slots : [];\nlet result;\nif (slots.length === 0) {\n  result = \"I couldn't find an opening in that window. Our next opening is usually within 2 business days — \" +\n    \"let the caller know the team will call to confirm a time.\";\n} else {\n  result = slots.map((s, i) => {\n    const d = new Date(s.start);\n    const day = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });\n    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });\n    return `Option ${i + 1}: ${day} at ${time}`;\n  }).join(', or ');\n}\nreturn [{ json: { tool_call_id: $('Parse Tool Call').first().json.tool_call_id, result } }];"
+        "jsCode": "const cfg = $('Config').first().json;\nconst res = $input.first().json;\nconst byDay = res.status === 'success' && res.data && typeof res.data === 'object' ? res.data : null;\nconst all = byDay\n  ? Object.values(byDay).flat()\n      .map((s) => DateTime.fromISO(typeof s === 'string' ? s : s.start, { setZone: true }))\n      .filter((t) => t.isValid)\n      .sort((a, b) => a - b)\n  : [];\n\n// Offer two options at least an hour apart (or on different days) so the caller gets a real choice.\nconst found = [];\nfor (const t of all) {\n  if (found.length === 2) break;\n  if (!found.length || t >= found[0].plus({ minutes: 60 }) || !t.hasSame(found[0], 'day')) found.push(t);\n}\n\nlet result;\nif (!byDay) {\n  result = \"The calendar couldn't be checked right now. Tell the caller the team will call today to set a time.\";\n} else if (!found.length) {\n  result = 'No openings in the next two weeks. Tell the caller the team will call to find a time that works.';\n} else {\n  const spoken = found.map((t, i) => {\n    const local = t.setZone(cfg.timezone);\n    return `Option ${i + 1}: ${local.toFormat(\"cccc, LLLL d 'at' h:mm a\")} (start_time ${local.toISO()})`;\n  }).join('. ');\n  result = `Open times (${cfg.timezone}): ${spoken}. Offer these in words. ` +\n    'If the caller picks one, get their email, then call bookStrategyCall with that start_time.';\n}\nreturn [{ json: { tool_call_id: $('Parse Tool Call').first().json.tool_call_id, result } }];"
       },
-      "id": "f53c82fd-dc68-5b22-82ec-cd9bce86a285",
-      "name": "Format Slots",
+      "id": "d4426d9b-9fad-584b-b768-9506232d563d",
+      "name": "Pick Two Slots",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -111,7 +109,7 @@
         "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.tool_call_id, result: $json.result }] }) }}",
         "options": {}
       },
-      "id": "6727b434-79be-554d-a27b-07b62172b465",
+      "id": "2612d044-5329-5838-9a7f-30f66bc9d01d",
       "name": "Return to Vapi",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -148,25 +146,25 @@
       "main": [
         [
           {
-            "node": "Fetch Available Slots",
+            "node": "Cal.com – Available Slots",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Fetch Available Slots": {
+    "Cal.com – Available Slots": {
       "main": [
         [
           {
-            "node": "Format Slots",
+            "node": "Pick Two Slots",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Format Slots": {
+    "Pick Two Slots": {
       "main": [
         [
           {

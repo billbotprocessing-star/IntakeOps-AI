@@ -10,7 +10,8 @@ settings. They don't use `$env` or `$vars`, so they work on n8n Cloud as-is.
 | `lead-recovery.json` | `vapi/call-missed` | Waits 3 minutes, texts the caller a booking link, logs the missed call. |
 | `escalate-to-oncall.json` | `vapi/escalate` | Vapi tool `escalateToOnCall` → pages on-call through the site. |
 | `service-area-check.json` | `vapi/check-service-area` | Vapi tool `check_service_availability` → checks the ZIP against your list. |
-| `calendar-sync.json` | `vapi/check-calendar` | Vapi tool `checkCalendar` → asks your calendar API for the next 2 slots. |
+| `calendar-sync.json` | `vapi/check-calendar` | Vapi tool `checkCalendar` → finds the next 2 open times on your Cal.com booking page. |
+| `book-strategy-call.json` | `vapi/book-appointment` | Vapi tool `bookStrategyCall` → books the chosen time on Cal.com (Cal.com emails the caller a confirmation). |
 | `triage-routing.json` | `intakeops/triage` | Optional: for intake sources other than Vapi (web forms etc.). |
 
 ## Setup
@@ -22,7 +23,7 @@ For **each** file:
    - `intakeops_api_key` — the same value as `INTAKEOPS_API_KEY` in Netlify.
    - `site_api_url` — already set to `https://intake-ops-ai.netlify.app/api`.
    - `twilio_from_number`, `booking_url`, `on_call_phone`, `service_zip_codes`,
-     `calendar_api_url`, `calendar_api_key` — only in the workflows that have them.
+     and the Cal.com settings (`cal_username`, `event_type_slug`, `timezone`) — only in the workflows that have them.
 3. If the workflow has **Twilio** nodes (Lead Recovery, Triage Routing), open each one
    and choose your Twilio credential under **Credential to connect with**
    (create it once: Account SID + Auth Token).
@@ -36,6 +37,7 @@ Your production webhook URLs are `https://billbotprocessing.app.n8n.cloud/webhoo
 - Tool `escalateToOnCall` → `…/webhook/vapi/escalate`
 - Tool `check_service_availability` → `…/webhook/vapi/check-service-area`
 - Tool `checkCalendar` → `…/webhook/vapi/check-calendar`
+- Tool `bookStrategyCall` → `…/webhook/vapi/book-appointment`
 
 Post-Call Intake reads the caller's details from the assistant's **Analysis** tab:
 
@@ -53,9 +55,12 @@ Post-Call Intake reads the caller's details from the assistant's **Analysis** ta
 
 ## Notes
 
+- Vapi tools can be **Function** or **API Request** tools (method **POST**); the workflows accept both.
+
 - Callers get one text per call: the site sends it when the lead is saved.
   Post-Call Intake has no Twilio nodes on purpose.
-- `calendar-sync.json` calls `GET <calendar_api_url>/availability?date=&service=&duration=&limit=2`
-  and expects `{ "slots": [{ "start": "<ISO time>" }] }`. Most calendar APIs
-  (Acuity, Calendly…) use a different shape, so adjust the **Fetch Available Slots**
-  node for yours. If the call fails, Vapi is told to promise a callback.
+- Calendar: availability, working hours, buffers and minimum notice come from the
+  Cal.com event type (`cal.com/<cal_username>/<event_type_slug>`); no API key is needed
+  for a public booking page. Bookings need the caller's email, so Billy asks for it.
+  If Cal.com rejects the notes field, the booking is retried without it; if Cal.com
+  can't be reached, Vapi is told to promise a callback.

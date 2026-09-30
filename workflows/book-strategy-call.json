@@ -1,0 +1,362 @@
+{
+  "name": "IntakeOps – Book Strategy Call (Cal.com)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi/book-appointment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "7b3f6465-da39-5335-9aeb-911c13fe864a",
+      "name": "Vapi Tool Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "64cde1a6-ab28-58ca-b8f9-621bd8521fda"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Your Cal.com username (from cal.com/<username>/<event>)\n    cal_username: \"danielle-traynor-hc7i3n\",\n    // The event type to book (the last part of your booking link)\n    event_type_slug: \"30min\",\n    // Your time zone, e.g. America/New_York, America/Chicago, America/Los_Angeles\n    timezone: \"America/New_York\",\n    // Optional. Leave empty for a public booking page; otherwise paste a cal_live_... key\n    cal_api_key: \"\",\n  },\n}];"
+      },
+      "id": "8e515af0-1cfb-552a-85e4-ac53577a041c",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Vapi Tool Call').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\nconst toolCall =\n  (msg.toolCallList ?? msg.toolCalls ?? [])[0] ??\n  msg.toolWithToolCallList?.[0]?.toolCall ?? {};\n// Function tools send Vapi's tool-call envelope; API Request tools POST the\n// parameters as the whole body.\nlet args = toolCall.function?.arguments ?? toolCall.arguments ?? (body.message ? {} : body);\nif (typeof args === 'string') {\n  try { args = JSON.parse(args); } catch { args = {}; }\n}\nconst toolCallId = toolCall.id ?? '';\n\nconst cfg = $('Config').first().json;\nconst start = DateTime.fromISO(String(args.start_time ?? ''), { setZone: true });\nconst valid = start.isValid && start > DateTime.now();\nconst phone = String(args.caller_phone || call.customer?.number || msg.customer?.number || '').replace(/[\\s().-]/g, '');\nconst email = String(args.email ?? '').trim().toLowerCase();\nconst attendee = { name: String(args.caller_name || 'New lead'), timeZone: cfg.timezone, language: 'en' };\nif (/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) attendee.email = email;\nif (/^\\+[0-9]{8,15}$/.test(phone)) attendee.phoneNumber = phone;\nconst notes = [\n  args.business_name ? `Business: ${args.business_name}` : '',\n  phone ? `Phone: ${phone}` : '',\n  args.notes ? `Notes: ${args.notes}` : '',\n  'Booked by Billy (IntakeOps AI receptionist).',\n].filter(Boolean).join('\\n');\nconst booking = {\n  start: valid ? start.toUTC().toISO() : '',\n  eventTypeSlug: cfg.event_type_slug,\n  username: cfg.cal_username,\n  attendee,\n  metadata: {\n    source: 'billy',\n    phone: phone.slice(0, 500),\n    business: String(args.business_name ?? '').slice(0, 500),\n  },\n};\nreturn [{\n  json: {\n    tool_call_id: toolCallId,\n    valid,\n    spoken_time: valid ? start.setZone(cfg.timezone).toFormat(\"cccc, LLLL d 'at' h:mm a\") : '',\n    has_email: Boolean(attendee.email),\n    booking,\n    booking_with_notes: { ...booking, bookingFieldsResponses: { notes } },\n  },\n}];"
+      },
+      "id": "a7fda512-624b-5228-90ea-ed491312eea9",
+      "name": "Parse Tool Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "09a54d0d-6a7b-57eb-bb1d-b47daaf3967e",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "49863743-7410-5ccf-aa1a-cfbcc428a69c",
+      "name": "Valid Time?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cal.com/v2/bookings",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={{ JSON.stringify(Object.assign({ 'cal-api-version': '2024-08-13' }, $('Config').first().json.cal_api_key ? { Authorization: 'Bearer ' + $('Config').first().json.cal_api_key } : {})) }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Parse Tool Call').first().json.booking_with_notes) }}"
+      },
+      "id": "8efff7c9-a590-5bd2-a9c2-f0ce0ecd350b",
+      "name": "Cal.com – Create Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        200
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// If this booking page has no 'notes' field Cal.com rejects it; retry without.\nconst res = $input.first().json;\nconst text = JSON.stringify(res).toLowerCase();\nreturn [{ json: { ...res, retry: res.status !== 'success' && /bookingfieldsresponses|notes/.test(text) } }];"
+      },
+      "id": "a16797f5-ffe0-5e6b-98e1-903ea292ce22",
+      "name": "Retry Without Notes?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "6c3ed567-bfb6-5494-ab6a-96ceffc3efd8",
+              "leftValue": "={{ $json.retry }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "898c8371-0b65-5098-a79c-05a679448e23",
+      "name": "Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cal.com/v2/bookings",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={{ JSON.stringify(Object.assign({ 'cal-api-version': '2024-08-13' }, $('Config').first().json.cal_api_key ? { Authorization: 'Bearer ' + $('Config').first().json.cal_api_key } : {})) }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Parse Tool Call').first().json.booking) }}"
+      },
+      "id": "8c7115c6-2491-5acf-8111-0e844b3a5d60",
+      "name": "Cal.com – Create Booking (no notes)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Parse Tool Call').first().json;\nconst res = $input.first().json;\nconst text = JSON.stringify(res).toLowerCase();\nlet result;\nif (res.status === 'success') {\n  result = `Booked for ${req.spoken_time}.` +\n    (req.has_email ? \" Tell the caller they'll get a confirmation email with the details.\" : ' Confirm the time with the caller.');\n} else if (/email/.test(text) && !req.has_email) {\n  result = 'The calendar needs an email address to book. Ask for their email, spell it back to confirm, ' +\n    'then call bookStrategyCall again with the same start_time and the email.';\n} else if (/not available|unavailable|already|taken|no available|busy/.test(text)) {\n  result = 'That time was just taken. Call checkCalendar again and offer the next open times.';\n} else {\n  result = \"Booking didn't go through. Tell the caller the team will call today to confirm a time.\";\n}\nreturn [{ json: { tool_call_id: req.tool_call_id, result } }];"
+      },
+      "id": "83a200d6-e249-5404-bf58-b141731c23f8",
+      "name": "Confirm",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.tool_call_id, result: $json.result }] }) }}",
+        "options": {}
+      },
+      "id": "2d145412-028b-5fa1-b016-a5669520828f",
+      "name": "Return to Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  tool_call_id: $('Parse Tool Call').first().json.tool_call_id,\n  result: 'That time is missing or in the past. Call checkCalendar again and offer one of the open times.',\n} }];"
+      },
+      "id": "a39b51ee-1df3-5c5e-8f7b-3acb49772b62",
+      "name": "Invalid Time",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.tool_call_id, result: $json.result }] }) }}",
+        "options": {}
+      },
+      "id": "92eb46df-7cbb-519f-8c14-e4e121f8f8dd",
+      "name": "Return to Vapi (invalid)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        440
+      ]
+    }
+  ],
+  "connections": {
+    "Vapi Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Parse Tool Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Valid Time?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Time?": {
+      "main": [
+        [
+          {
+            "node": "Cal.com – Create Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cal.com – Create Booking": {
+      "main": [
+        [
+          {
+            "node": "Retry Without Notes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry Without Notes?": {
+      "main": [
+        [
+          {
+            "node": "Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry?": {
+      "main": [
+        [
+          {
+            "node": "Cal.com – Create Booking (no notes)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cal.com – Create Booking (no notes)": {
+      "main": [
+        [
+          {
+            "node": "Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm": {
+      "main": [
+        [
+          {
+            "node": "Return to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invalid Time": {
+      "main": [
+        [
+          {
+            "node": "Return to Vapi (invalid)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

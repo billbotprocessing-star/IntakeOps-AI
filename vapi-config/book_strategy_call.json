@@ -1,0 +1,25 @@
+{
+  "type": "function",
+  "function": {
+    "name": "bookStrategyCall",
+    "description": "Books a strategy call on the IntakeOps Google Calendar at a time returned by checkCalendar. Only call this after the caller has picked one of the offered times.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "description": "The exact start_time value from checkCalendar for the option the caller picked, e.g. 2026-10-05T11:00:00.000-04:00."
+        },
+        "caller_name": { "type": "string", "description": "The caller's full name." },
+        "caller_phone": { "type": "string", "description": "Best callback number, e.g. +15551234567." },
+        "business_name": { "type": "string", "description": "The caller's business name." },
+        "notes": { "type": "string", "description": "One sentence: business type, weekly call volume, and what they want to cover." }
+      },
+      "required": ["start_time", "caller_name"]
+    }
+  },
+  "server": {
+    "url": "https://billbotprocessing.app.n8n.cloud/webhook/vapi/book-appointment",
+    "timeoutSeconds": 10
+  }
+}

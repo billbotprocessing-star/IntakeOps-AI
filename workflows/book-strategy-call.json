@@ -1,0 +1,285 @@
+{
+  "name": "IntakeOps – Book Strategy Call",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi/book-appointment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "7d11a4f7-1df6-5452-901f-b845a18965f5",
+      "name": "Vapi Tool Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "1245a1a9-82fc-59e9-8c7d-f9a661d66665"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✏️  FILL IN THE VALUES BELOW, then click Save.\n// Every other node in this workflow reads its settings from here.\nreturn [{\n  json: {\n    // Which Google Calendar to use. 'primary' = your main calendar\n    calendar_id: \"primary\",\n    // Your time zone, e.g. America/New_York, America/Chicago, America/Los_Angeles\n    timezone: \"America/New_York\",\n    // Length of a strategy call in minutes\n    call_minutes: 30,\n  },\n}];"
+      },
+      "id": "4c5898d6-3e31-5b4d-bdf4-c13c95eafdf7",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Vapi Tool Call').first().json;\nconst body = req.body ?? req;\nconst msg = body.message ?? body;\nconst call = msg.call ?? body.call ?? {};\nconst toolCall =\n  (msg.toolCallList ?? msg.toolCalls ?? [])[0] ??\n  msg.toolWithToolCallList?.[0]?.toolCall ?? {};\nlet args = toolCall.function?.arguments ?? toolCall.arguments ?? {};\nif (typeof args === 'string') {\n  try { args = JSON.parse(args); } catch { args = {}; }\n}\nconst toolCallId = toolCall.id ?? '';\n\nconst cfg = $('Config').first().json;\nconst start = DateTime.fromISO(String(args.start_time ?? ''), { setZone: true });\nconst minutes = Number(args.duration_minutes) || Number(cfg.call_minutes) || 30;\nconst valid = start.isValid && start > DateTime.now();\nconst end = valid ? start.plus({ minutes }) : null;\nreturn [{\n  json: {\n    tool_call_id: toolCallId,\n    valid,\n    time_min: valid ? start.toISO() : DateTime.now().toISO(),\n    time_max: valid ? end.toISO() : DateTime.now().plus({ minutes: 1 }).toISO(),\n    event: {\n      summary: `IntakeOps strategy call – ${args.caller_name || 'New lead'}` +\n        (args.business_name ? ` (${args.business_name})` : ''),\n      description: [\n        `Name: ${args.caller_name || 'Unknown'}`,\n        `Phone: ${args.caller_phone || call.customer?.number || msg.customer?.number || 'Unknown'}`,\n        `Business: ${args.business_name || 'Unknown'}`,\n        args.notes ? `Notes: ${args.notes}` : '',\n        'Booked by Billy (IntakeOps AI receptionist).',\n      ].filter(Boolean).join('\\n'),\n      start: { dateTime: valid ? start.toISO() : null, timeZone: cfg.timezone },\n      end: { dateTime: valid ? end.toISO() : null, timeZone: cfg.timezone },\n    },\n    spoken_time: valid ? start.setZone(cfg.timezone).toFormat(\"cccc, LLLL d 'at' h:mm a\") : '',\n  },\n}];"
+      },
+      "id": "9f56d207-1c0b-57ab-a83e-e0b76281a8d4",
+      "name": "Parse Tool Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/calendar/v3/freeBusy",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ timeMin: $json.time_min, timeMax: $json.time_max, timeZone: $('Config').first().json.timezone, items: [{ id: $('Config').first().json.calendar_id }] }) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "5b5fab45-9b8d-56fc-a484-a28e0be40063",
+      "name": "Google Calendar – Still Free?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Config').first().json;\nconst req = $('Parse Tool Call').first().json;\nconst fb = $input.first().json;\nconst calId = cfg.calendar_id;\nconst cal = fb.calendars?.[calId] ?? Object.values(fb.calendars ?? {})[0];\nconst calendarOk = Boolean(cal) && !fb.error && !(cal.errors?.length);\nconst busy = (cal?.busy ?? []).map((b) => [DateTime.fromISO(b.start), DateTime.fromISO(b.end)]);\nconst overlaps = (s, e) => busy.some(([bs, be]) => s < be && e > bs);\n\nlet book = false;\nlet result;\nif (!req.valid) {\n  result = 'That time is missing or in the past. Call checkCalendar again and offer one of the open times.';\n} else if (!calendarOk) {\n  result = \"The calendar couldn't be reached. Tell the caller the team will call today to confirm the time.\";\n} else if (overlaps(DateTime.fromISO(req.time_min), DateTime.fromISO(req.time_max))) {\n  result = 'That time was just taken. Call checkCalendar again and offer the next open times.';\n} else {\n  book = true;\n}\nreturn [{ json: { tool_call_id: req.tool_call_id, book, result: result ?? '' } }];"
+      },
+      "id": "8a69f11e-da2a-530a-8c15-e9cbfad5b0af",
+      "name": "Decide",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "2434fafe-1eca-5403-b1af-a1693543471d",
+              "leftValue": "={{ $json.book }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a58a839c-cbe5-5698-bb7c-1949af8fb3d6",
+      "name": "Book It?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Config').first().json.calendar_id) }}/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Parse Tool Call').first().json.event) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "0022141a-c55e-5abb-8dae-adb35117800b",
+      "name": "Google Calendar – Create Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        200
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Parse Tool Call').first().json;\nconst created = $input.first().json;\nconst result = created.id\n  ? `Booked for ${req.spoken_time}. Confirm the time with the caller and tell them they'll get a text.`\n  : \"Booking didn't go through. Tell the caller the team will call today to confirm the time.\";\nreturn [{ json: { tool_call_id: req.tool_call_id, result } }];"
+      },
+      "id": "139976cc-e60a-5ce5-a9a5-3a84e07f49cd",
+      "name": "Confirm",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.tool_call_id, result: $json.result }] }) }}",
+        "options": {}
+      },
+      "id": "057b5bf5-c53d-5e8b-9e55-35132703522b",
+      "name": "Return to Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.tool_call_id, result: $json.result }] }) }}",
+        "options": {}
+      },
+      "id": "5154d263-a0d7-54f8-af7e-065541d33c58",
+      "name": "Return to Vapi (not booked)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Vapi Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Parse Tool Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Tool Call": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar – Still Free?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar – Still Free?": {
+      "main": [
+        [
+          {
+            "node": "Decide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide": {
+      "main": [
+        [
+          {
+            "node": "Book It?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book It?": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar – Create Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return to Vapi (not booked)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar – Create Event": {
+      "main": [
+        [
+          {
+            "node": "Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm": {
+      "main": [
+        [
+          {
+            "node": "Return to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

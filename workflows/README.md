@@ -10,7 +10,8 @@ settings. They don't use `$env` or `$vars`, so they work on n8n Cloud as-is.
 | `lead-recovery.json` | `vapi/call-missed` | Waits 3 minutes, texts the caller a booking link, logs the missed call. |
 | `escalate-to-oncall.json` | `vapi/escalate` | Vapi tool `escalateToOnCall` → pages on-call through the site. |
 | `service-area-check.json` | `vapi/check-service-area` | Vapi tool `check_service_availability` → checks the ZIP against your list. |
-| `calendar-sync.json` | `vapi/check-calendar` | Vapi tool `checkCalendar` → asks your calendar API for the next 2 slots. |
+| `calendar-sync.json` | `vapi/check-calendar` | Vapi tool `checkCalendar` → finds the next 2 open times on your Google Calendar. |
+| `book-strategy-call.json` | `vapi/book-appointment` | Vapi tool `bookStrategyCall` → re-checks the time is free and creates the Google Calendar event. |
 | `triage-routing.json` | `intakeops/triage` | Optional: for intake sources other than Vapi (web forms etc.). |
 
 ## Setup
@@ -22,10 +23,12 @@ For **each** file:
    - `intakeops_api_key` — the same value as `INTAKEOPS_API_KEY` in Netlify.
    - `site_api_url` — already set to `https://intake-ops-ai.netlify.app/api`.
    - `twilio_from_number`, `booking_url`, `on_call_phone`, `service_zip_codes`,
-     `calendar_api_url`, `calendar_api_key` — only in the workflows that have them.
+     and the calendar settings (`calendar_id`, `timezone`, business hours) — only in the workflows that have them.
 3. If the workflow has **Twilio** nodes (Lead Recovery, Triage Routing), open each one
    and choose your Twilio credential under **Credential to connect with**
    (create it once: Account SID + Auth Token).
+   The two calendar workflows have **Google Calendar** nodes: choose a
+   **Google Calendar OAuth2 API** credential on each (create it once with **Sign in with Google**).
 4. **Save**, then switch the workflow to **Active** (or **Publish**).
 
 ## Vapi URLs
@@ -36,6 +39,7 @@ Your production webhook URLs are `https://billbotprocessing.app.n8n.cloud/webhoo
 - Tool `escalateToOnCall` → `…/webhook/vapi/escalate`
 - Tool `check_service_availability` → `…/webhook/vapi/check-service-area`
 - Tool `checkCalendar` → `…/webhook/vapi/check-calendar`
+- Tool `bookStrategyCall` → `…/webhook/vapi/book-appointment`
 
 Post-Call Intake reads the caller's details from the assistant's **Analysis** tab:
 
@@ -55,7 +59,6 @@ Post-Call Intake reads the caller's details from the assistant's **Analysis** ta
 
 - Callers get one text per call: the site sends it when the lead is saved.
   Post-Call Intake has no Twilio nodes on purpose.
-- `calendar-sync.json` calls `GET <calendar_api_url>/availability?date=&service=&duration=&limit=2`
-  and expects `{ "slots": [{ "start": "<ISO time>" }] }`. Most calendar APIs
-  (Acuity, Calendly…) use a different shape, so adjust the **Fetch Available Slots**
-  node for yours. If the call fails, Vapi is told to promise a callback.
+- Calendar: open times are your business hours (Config) minus anything busy on the
+  calendar. `bookStrategyCall` checks the slot is still free before creating the event.
+  If Google can't be reached, Vapi is told to promise a callback instead.

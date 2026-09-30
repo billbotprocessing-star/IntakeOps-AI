@@ -57,6 +57,8 @@ Post-Call Intake reads the caller's details from the assistant's **Analysis** ta
 
 ## Notes
 
+- Vapi tools can be **Function** or **API Request** tools (method **POST**); the workflows accept both.
+
 - Callers get one text per call: the site sends it when the lead is saved.
   Post-Call Intake has no Twilio nodes on purpose.
 - Calendar: open times are your business hours (Config) minus anything busy on the
